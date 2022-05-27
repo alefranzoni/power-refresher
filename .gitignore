@@ -14,6 +14,7 @@ bld/
 [Oo]bj/
 [Ll]og/
 .vs/
+.vs/*
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
 project.lock.json
@@ -44,3 +45,4 @@ artifacts/
 *.scc
 *.vsidx
 *.cache
+.vs/PowerRefresher/v17/.suo
