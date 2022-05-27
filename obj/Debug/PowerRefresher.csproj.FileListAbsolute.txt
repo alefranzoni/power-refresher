@@ -1,0 +1,5 @@
+C:\Users\RY30919\source\repos\PowerRefresher\obj\Debug\PowerRefresher.csproj.AssemblyReference.cache
+C:\Users\RY30919\source\repos\PowerRefresher\obj\Debug\PowerRefresher.csproj.SuggestedBindingRedirects.cache
+C:\Users\RY30919\source\repos\PowerRefresher\obj\Debug\PowerRefresher.exe.config
+C:\Users\RY30919\source\repos\PowerRefresher\obj\Debug\PowerRefresher.frmMain.resources
+C:\Users\RY30919\source\repos\PowerRefresher\obj\Debug\PowerRefresher.csproj.GenerateResource.cache
