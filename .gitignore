@@ -1,8 +1,13 @@
+# User-specific files
 *.suo
 *.user
 *.userosscache
 *.sln.docstates
+
+# User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
+
+# Build results
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
@@ -13,13 +18,14 @@ bld/
 [Bb]in/
 [Oo]bj/
 [Ll]og/
+
+# Visual Studio cache/options directory
 .vs/
-.vs/*
-vs/
-[Tt]est[Rr]esult*/
-[Bb]uild[Ll]og.*
+
+# DNX
 project.lock.json
 artifacts/
+
 *_i.c
 *_p.c
 *_i.h
@@ -44,8 +50,33 @@ artifacts/
 *.pidb
 *.svclog
 *.scc
-*.vsidx
-*.cache
-.vs/PowerRefresher/v17/.suo
-.vs/PowerRefresher/v17/.suo
-.vs\
+
+# Visual C++ cache files
+ipch/
+*.aps
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+
+# Visual Studio profiler
+*.psess
+*.vsp
+*.vspx
+*.sap
+
+# Click-Once directory
+publish/
+
+# Publish Web Output
+*.[Pp]ublish.xml
+*.azurePubxml
+*.pubxml
+*.publishproj
+
+# Visual Studio cache files
+# files ending in .cache can be ignored
+*.[Cc]ache
+# but keep track of directories ending in .cache
+!*.[Cc]ache/
