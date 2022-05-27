@@ -42,3 +42,5 @@ artifacts/
 *.pidb
 *.svclog
 *.scc
+*.vsidx
+*.cache
