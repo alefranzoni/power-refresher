@@ -1,4 +1,4 @@
 
-obj\*
-.vs\*
-bin\*
+obj/
+.vs/
+bin/
