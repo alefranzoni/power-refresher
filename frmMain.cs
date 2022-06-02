@@ -54,7 +54,8 @@ namespace PowerRefresher
             chklModelFields.Enabled = !chkRefreshAll.Checked;
             lblModelFields.Enabled = !chkRefreshAll.Checked;
             if (chklModelFields.CheckedItems.Count == 0) { return; }
-            foreach (int i in chklModelFields.CheckedIndices) { chklModelFields.SetItemChecked(i, false); };
+            setModelFieldsSelectionState(false);
+            
         }
         private void chkPublish_CheckedChanged(object sender, EventArgs e)
         {
@@ -108,7 +109,8 @@ namespace PowerRefresher
                 RefreshFailed(err);
             }
         }
-
+        private void selectAllFieldsMenuItem_Click(object sender, EventArgs e) => setModelFieldsSelectionState(true);
+        private void clearSelectionMenuItem_Click(object sender, EventArgs e) => setModelFieldsSelectionState(false);
 
         private void RefreshSelection()
         {
@@ -542,6 +544,10 @@ namespace PowerRefresher
             return true;
         }
         private bool RefreshSuccess() => (refreshDialog == null); //Success -> refreshDialog = null | Failure -> cancelRefreshButton != null
+        private void setModelFieldsSelectionState(bool state)
+        {
+            for (int i = 0; i < chklModelFields.Items.Count; i++) { chklModelFields.SetItemChecked(i, state); }
+        }
 
         private void frmMain_Load(object sender, EventArgs e)
         {
@@ -555,5 +561,7 @@ namespace PowerRefresher
                 }
             }
         }
+
+        
     }
 }
