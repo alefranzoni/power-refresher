@@ -562,6 +562,15 @@ namespace PowerRefresher
             }
         }
 
-        
+       
+
+        private void txtOutput_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.Control && e.KeyCode == Keys.C)
+            {
+                ShowMessage(txtOutput.SelectedText, MessageBoxIcon.Information);
+
+            }
+        }
     }
 }

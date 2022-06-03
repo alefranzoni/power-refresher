@@ -196,19 +196,19 @@ namespace PowerRefresher
             this.selectAllFieldsMenuItem,
             this.clearSelectionMenuItem});
             this.modelFieldsContextMenu.Name = "modelFieldsContextMenu";
-            this.modelFieldsContextMenu.Size = new System.Drawing.Size(181, 70);
+            this.modelFieldsContextMenu.Size = new System.Drawing.Size(123, 48);
             // 
             // selectAllFieldsMenuItem
             // 
             this.selectAllFieldsMenuItem.Name = "selectAllFieldsMenuItem";
-            this.selectAllFieldsMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.selectAllFieldsMenuItem.Size = new System.Drawing.Size(122, 22);
             this.selectAllFieldsMenuItem.Text = "Select All";
             this.selectAllFieldsMenuItem.Click += new System.EventHandler(this.selectAllFieldsMenuItem_Click);
             // 
             // clearSelectionMenuItem
             // 
             this.clearSelectionMenuItem.Name = "clearSelectionMenuItem";
-            this.clearSelectionMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.clearSelectionMenuItem.Size = new System.Drawing.Size(122, 22);
             this.clearSelectionMenuItem.Text = "Clear";
             this.clearSelectionMenuItem.Click += new System.EventHandler(this.clearSelectionMenuItem_Click);
             // 
@@ -287,6 +287,7 @@ namespace PowerRefresher
     "ejandro Franzoni Gimenez @ https://alejandrofranzoni.com.ar\n\n";
             this.txtOutput.LinkClicked += new System.Windows.Forms.LinkClickedEventHandler(this.txtOutput_LinkClicked);
             this.txtOutput.TextChanged += new System.EventHandler(this.txtOutput_TextChanged);
+            this.txtOutput.KeyUp += new System.Windows.Forms.KeyEventHandler(this.txtOutput_KeyUp);
             // 
             // cmdStartRefresh
             // 
