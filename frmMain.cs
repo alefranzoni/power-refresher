@@ -111,6 +111,10 @@ namespace PowerRefresher
         }
         private void selectAllFieldsMenuItem_Click(object sender, EventArgs e) => setModelFieldsSelectionState(true);
         private void clearSelectionMenuItem_Click(object sender, EventArgs e) => setModelFieldsSelectionState(false);
+        private void copySelectedMenuItem_Click(object sender, EventArgs e) => SetTextToClipboard(txtOutput.SelectedText);
+        private void selectAllTextMenuItem_Click(object sender, EventArgs e) => txtOutput.SelectAll();
+
+
 
         private void RefreshSelection()
         {
@@ -544,9 +548,13 @@ namespace PowerRefresher
             return true;
         }
         private bool RefreshSuccess() => (refreshDialog == null); //Success -> refreshDialog = null | Failure -> cancelRefreshButton != null
-        private void setModelFieldsSelectionState(bool state)
+        private void setModelFieldsSelectionState(bool checkStatus)
         {
-            for (int i = 0; i < chklModelFields.Items.Count; i++) { chklModelFields.SetItemChecked(i, state); }
+            for (int i = 0; i < chklModelFields.Items.Count; i++) { chklModelFields.SetItemChecked(i, checkStatus); }
+        }
+        private void SetTextToClipboard(string text)
+        {
+            if (text != "") Clipboard.SetText(text);
         }
 
         private void frmMain_Load(object sender, EventArgs e)
@@ -564,13 +572,10 @@ namespace PowerRefresher
 
        
 
-        private void txtOutput_KeyUp(object sender, KeyEventArgs e)
-        {
-            if (e.Control && e.KeyCode == Keys.C)
-            {
-                ShowMessage(txtOutput.SelectedText, MessageBoxIcon.Information);
+    
 
-            }
-        }
+        
+        
+
     }
 }

@@ -51,11 +51,15 @@ namespace PowerRefresher
             this.txtOutput = new System.Windows.Forms.RichTextBox();
             this.cmdStartRefresh = new System.Windows.Forms.Button();
             this.helpToolTip = new System.Windows.Forms.ToolTip(this.components);
+            this.richTextBoxContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.copySelectedMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.selectAllTextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.gbInput.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericTimeout)).BeginInit();
             this.gbOptions.SuspendLayout();
             this.modelFieldsContextMenu.SuspendLayout();
             this.grOutput.SuspendLayout();
+            this.richTextBoxContextMenu.SuspendLayout();
             this.SuspendLayout();
             // 
             // lblTitle
@@ -275,6 +279,7 @@ namespace PowerRefresher
             // txtOutput
             // 
             this.txtOutput.BackColor = System.Drawing.Color.Black;
+            this.txtOutput.ContextMenuStrip = this.richTextBoxContextMenu;
             this.txtOutput.ForeColor = System.Drawing.Color.LimeGreen;
             this.txtOutput.Location = new System.Drawing.Point(11, 21);
             this.txtOutput.Name = "txtOutput";
@@ -284,10 +289,9 @@ namespace PowerRefresher
             this.txtOutput.TabIndex = 0;
             this.txtOutput.TabStop = false;
             this.txtOutput.Text = "Ready to go!\n-\nPowerRefresher @ https://github.com/alefranzoni/power-refresher\nAl" +
-    "ejandro Franzoni Gimenez @ https://alejandrofranzoni.com.ar\n\n";
+    "ejandro Franzoni Gimenez @ https://alejandrofranzoni.com.ar";
             this.txtOutput.LinkClicked += new System.Windows.Forms.LinkClickedEventHandler(this.txtOutput_LinkClicked);
             this.txtOutput.TextChanged += new System.EventHandler(this.txtOutput_TextChanged);
-            this.txtOutput.KeyUp += new System.Windows.Forms.KeyEventHandler(this.txtOutput_KeyUp);
             // 
             // cmdStartRefresh
             // 
@@ -300,6 +304,32 @@ namespace PowerRefresher
             this.helpToolTip.SetToolTip(this.cmdStartRefresh, "Test your settings by refreshing the file!");
             this.cmdStartRefresh.UseVisualStyleBackColor = true;
             this.cmdStartRefresh.Click += new System.EventHandler(this.cmdStartRefresh_Click);
+            // 
+            // richTextBoxContextMenu
+            // 
+            this.richTextBoxContextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.copySelectedMenuItem,
+            this.selectAllTextMenuItem});
+            this.richTextBoxContextMenu.Name = "richTextBoxContextMenu";
+            this.richTextBoxContextMenu.Size = new System.Drawing.Size(165, 48);
+            // 
+            // copySelectedMenuItem
+            // 
+            this.copySelectedMenuItem.Name = "copySelectedMenuItem";
+            this.copySelectedMenuItem.ShortcutKeyDisplayString = "";
+            this.copySelectedMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.C)));
+            this.copySelectedMenuItem.Size = new System.Drawing.Size(164, 22);
+            this.copySelectedMenuItem.Text = "Copy";
+            this.copySelectedMenuItem.Click += new System.EventHandler(this.copySelectedMenuItem_Click);
+            // 
+            // selectAllTextMenuItem
+            // 
+            this.selectAllTextMenuItem.Name = "selectAllTextMenuItem";
+            this.selectAllTextMenuItem.ShortcutKeyDisplayString = "";
+            this.selectAllTextMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.A)));
+            this.selectAllTextMenuItem.Size = new System.Drawing.Size(164, 22);
+            this.selectAllTextMenuItem.Text = "Select All";
+            this.selectAllTextMenuItem.Click += new System.EventHandler(this.selectAllTextMenuItem_Click);
             // 
             // frmMain
             // 
@@ -326,6 +356,7 @@ namespace PowerRefresher
             this.gbOptions.PerformLayout();
             this.modelFieldsContextMenu.ResumeLayout(false);
             this.grOutput.ResumeLayout(false);
+            this.richTextBoxContextMenu.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -354,6 +385,9 @@ namespace PowerRefresher
         private System.Windows.Forms.ContextMenuStrip modelFieldsContextMenu;
         private System.Windows.Forms.ToolStripMenuItem selectAllFieldsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem clearSelectionMenuItem;
+        private System.Windows.Forms.ContextMenuStrip richTextBoxContextMenu;
+        private System.Windows.Forms.ToolStripMenuItem copySelectedMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem selectAllTextMenuItem;
     }
 }
 
