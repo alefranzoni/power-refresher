@@ -44,16 +44,17 @@ namespace PowerRefresher
             this.selectAllFieldsMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.clearSelectionMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.lblModelFields = new System.Windows.Forms.Label();
-            this.chkCloseOnFinish = new System.Windows.Forms.CheckBox();
+            this.chkCloseFileOnFinish = new System.Windows.Forms.CheckBox();
             this.chkPublish = new System.Windows.Forms.CheckBox();
             this.chkRefreshAll = new System.Windows.Forms.CheckBox();
             this.grOutput = new System.Windows.Forms.GroupBox();
             this.txtOutput = new System.Windows.Forms.RichTextBox();
-            this.cmdStartRefresh = new System.Windows.Forms.Button();
-            this.helpToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.richTextBoxContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.copySelectedMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.selectAllTextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.cmdStartRefresh = new System.Windows.Forms.Button();
+            this.helpToolTip = new System.Windows.Forms.ToolTip(this.components);
+            this.chkCloseAppOnFinish = new System.Windows.Forms.CheckBox();
             this.gbInput.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericTimeout)).BeginInit();
             this.gbOptions.SuspendLayout();
@@ -147,7 +148,8 @@ namespace PowerRefresher
             this.gbOptions.Controls.Add(this.lblWorkspace);
             this.gbOptions.Controls.Add(this.chklModelFields);
             this.gbOptions.Controls.Add(this.lblModelFields);
-            this.gbOptions.Controls.Add(this.chkCloseOnFinish);
+            this.gbOptions.Controls.Add(this.chkCloseAppOnFinish);
+            this.gbOptions.Controls.Add(this.chkCloseFileOnFinish);
             this.gbOptions.Controls.Add(this.chkPublish);
             this.gbOptions.Controls.Add(this.chkRefreshAll);
             this.gbOptions.Location = new System.Drawing.Point(12, 117);
@@ -227,18 +229,18 @@ namespace PowerRefresher
             this.lblModelFields.Text = "Model Fields";
             this.helpToolTip.SetToolTip(this.lblModelFields, "Select all the fields that you want to be updated. At least one required");
             // 
-            // chkCloseOnFinish
+            // chkCloseFileOnFinish
             // 
-            this.chkCloseOnFinish.AutoSize = true;
-            this.chkCloseOnFinish.Checked = true;
-            this.chkCloseOnFinish.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkCloseOnFinish.Location = new System.Drawing.Point(9, 191);
-            this.chkCloseOnFinish.Name = "chkCloseOnFinish";
-            this.chkCloseOnFinish.Size = new System.Drawing.Size(122, 17);
-            this.chkCloseOnFinish.TabIndex = 0;
-            this.chkCloseOnFinish.Text = "Close file on finish";
-            this.helpToolTip.SetToolTip(this.chkCloseOnFinish, "Close *.pbix file on finish");
-            this.chkCloseOnFinish.UseVisualStyleBackColor = true;
+            this.chkCloseFileOnFinish.AutoSize = true;
+            this.chkCloseFileOnFinish.Checked = true;
+            this.chkCloseFileOnFinish.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkCloseFileOnFinish.Location = new System.Drawing.Point(9, 191);
+            this.chkCloseFileOnFinish.Name = "chkCloseFileOnFinish";
+            this.chkCloseFileOnFinish.Size = new System.Drawing.Size(122, 17);
+            this.chkCloseFileOnFinish.TabIndex = 0;
+            this.chkCloseFileOnFinish.Text = "Close file on finish";
+            this.helpToolTip.SetToolTip(this.chkCloseFileOnFinish, "Close *.pbix file on finish");
+            this.chkCloseFileOnFinish.UseVisualStyleBackColor = true;
             // 
             // chkPublish
             // 
@@ -293,18 +295,6 @@ namespace PowerRefresher
             this.txtOutput.LinkClicked += new System.Windows.Forms.LinkClickedEventHandler(this.txtOutput_LinkClicked);
             this.txtOutput.TextChanged += new System.EventHandler(this.txtOutput_TextChanged);
             // 
-            // cmdStartRefresh
-            // 
-            this.cmdStartRefresh.Enabled = false;
-            this.cmdStartRefresh.Location = new System.Drawing.Point(315, 491);
-            this.cmdStartRefresh.Name = "cmdStartRefresh";
-            this.cmdStartRefresh.Size = new System.Drawing.Size(139, 23);
-            this.cmdStartRefresh.TabIndex = 4;
-            this.cmdStartRefresh.Text = "Refresh";
-            this.helpToolTip.SetToolTip(this.cmdStartRefresh, "Test your settings by refreshing the file!");
-            this.cmdStartRefresh.UseVisualStyleBackColor = true;
-            this.cmdStartRefresh.Click += new System.EventHandler(this.cmdStartRefresh_Click);
-            // 
             // richTextBoxContextMenu
             // 
             this.richTextBoxContextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
@@ -330,6 +320,30 @@ namespace PowerRefresher
             this.selectAllTextMenuItem.Size = new System.Drawing.Size(164, 22);
             this.selectAllTextMenuItem.Text = "Select All";
             this.selectAllTextMenuItem.Click += new System.EventHandler(this.selectAllTextMenuItem_Click);
+            // 
+            // cmdStartRefresh
+            // 
+            this.cmdStartRefresh.Enabled = false;
+            this.cmdStartRefresh.Location = new System.Drawing.Point(315, 491);
+            this.cmdStartRefresh.Name = "cmdStartRefresh";
+            this.cmdStartRefresh.Size = new System.Drawing.Size(139, 23);
+            this.cmdStartRefresh.TabIndex = 4;
+            this.cmdStartRefresh.Text = "Refresh";
+            this.helpToolTip.SetToolTip(this.cmdStartRefresh, "Test your settings by refreshing the file!");
+            this.cmdStartRefresh.UseVisualStyleBackColor = true;
+            this.cmdStartRefresh.Click += new System.EventHandler(this.cmdStartRefresh_Click);
+            // 
+            // chkCloseAppOnFinish
+            // 
+            this.chkCloseAppOnFinish.AutoSize = true;
+            this.chkCloseAppOnFinish.Checked = true;
+            this.chkCloseAppOnFinish.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkCloseAppOnFinish.Location = new System.Drawing.Point(150, 191);
+            this.chkCloseAppOnFinish.Name = "chkCloseAppOnFinish";
+            this.chkCloseAppOnFinish.Size = new System.Drawing.Size(164, 17);
+            this.chkCloseAppOnFinish.TabIndex = 0;
+            this.chkCloseAppOnFinish.Text = "Close application on finish";
+            this.chkCloseAppOnFinish.UseVisualStyleBackColor = true;
             // 
             // frmMain
             // 
@@ -377,7 +391,7 @@ namespace PowerRefresher
         private System.Windows.Forms.TextBox txtWorkspace;
         private System.Windows.Forms.Label lblWorkspace;
         private System.Windows.Forms.CheckBox chkPublish;
-        private System.Windows.Forms.CheckBox chkCloseOnFinish;
+        private System.Windows.Forms.CheckBox chkCloseFileOnFinish;
         private System.Windows.Forms.GroupBox grOutput;
         private System.Windows.Forms.RichTextBox txtOutput;
         private System.Windows.Forms.Button cmdStartRefresh;
@@ -388,6 +402,7 @@ namespace PowerRefresher
         private System.Windows.Forms.ContextMenuStrip richTextBoxContextMenu;
         private System.Windows.Forms.ToolStripMenuItem copySelectedMenuItem;
         private System.Windows.Forms.ToolStripMenuItem selectAllTextMenuItem;
+        private System.Windows.Forms.CheckBox chkCloseAppOnFinish;
     }
 }
 

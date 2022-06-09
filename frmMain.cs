@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Threading;
 using System.Windows.Automation;
 using System.Windows.Forms;
@@ -91,16 +92,17 @@ namespace PowerRefresher
                 //Save
                 SaveFile();
 
-                //Close
-                if (chkCloseOnFinish.Checked) CloseFile();
+                //Close file
+                if (chkCloseFileOnFinish.Checked) CloseFile();
                 
                 //Success
                 txtOutput.Text += "\n\n=== REFRESH FINISHED ===\nThanks for using PowerRefresher!\n";
                 txtOutput.Text += "-\nPowerRefresher @ https://github.com/alefranzoni/power-refresher" +
                     "\nAlejandro Franzoni Gimenez @ https://alejandrofranzoni.com.ar \n";
                 
+                //Close application
+                if (chkCloseAppOnFinish.Checked) CloseApplication();
 
-                
                 BringToFront();
                 Activate();
             }
@@ -109,6 +111,26 @@ namespace PowerRefresher
                 RefreshFailed(err);
             }
         }
+
+        private void CloseApplication()
+        {
+            CreateUpdateFileLog();
+            Close();
+        }
+        private void CreateUpdateFileLog()
+        {
+            string filename = $@"{Environment.GetEnvironmentVariable("TMP")}\PowerRefresher_LogReport_{DateTime.Now:ddmmyyyy_HHmmss}.txt";
+
+            using (StreamWriter streamWriter = File.CreateText(filename))
+            {
+                streamWriter.WriteLine($"PowerRefresher ({System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}) - Update Information");
+                streamWriter.WriteLine($"\nFile: {txtInput.Text}");
+                streamWriter.WriteLine($"\n[LOGS]\n{txtOutput.Text}");
+            }
+
+            OpenFile(filename);
+        }
+
         private void selectAllFieldsMenuItem_Click(object sender, EventArgs e) => setModelFieldsSelectionState(true);
         private void clearSelectionMenuItem_Click(object sender, EventArgs e) => setModelFieldsSelectionState(false);
         private void copySelectedMenuItem_Click(object sender, EventArgs e) => SetTextToClipboard(txtOutput.SelectedText);
@@ -429,7 +451,7 @@ namespace PowerRefresher
             try
             {
                 //Open or bind PBIX file  
-                OpenFile(txtInput.Text, ref windowTitleFilename);
+                OpenOrBindPbixFile(txtInput.Text, ref windowTitleFilename);
 
                 //Set reference to PowerBI application
                 SetPowerBIReference(windowTitleFilename);
@@ -480,7 +502,7 @@ namespace PowerRefresher
                     "[INFO] Found PowerBI application in " + timeout + " seconds (can be useful to help you to choose a correct timeout).";
             }
         }
-        private void OpenFile(string filePath, ref string windowTitleFilename){
+        private void OpenOrBindPbixFile(string filePath, ref string windowTitleFilename){
             txtOutput.Text = "Trying to open or bind PBIX file... ";
             windowTitleFilename = (filePath.Substring(filePath.LastIndexOf("\\") + 1) + " - Power BI Desktop").Replace(".pbix", "");
 
@@ -494,12 +516,16 @@ namespace PowerRefresher
             }
 
             //Open file
+            OpenFile(filePath, processWindowStyle: ProcessWindowStyle.Minimized);
+            txtOutput.Text += "[DONE]";
+        }
+        private void OpenFile(string filePath, bool useShellExec = true, ProcessWindowStyle processWindowStyle = ProcessWindowStyle.Normal)
+        {
             var p = new Process();
             p.StartInfo.FileName = filePath;
-            p.StartInfo.UseShellExecute = true;
-            p.StartInfo.WindowStyle = ProcessWindowStyle.Minimized;
+            p.StartInfo.UseShellExecute = useShellExec;
+            p.StartInfo.WindowStyle = processWindowStyle;
             p.Start();
-            txtOutput.Text += "[DONE]";
         }
         private void SetOutputLineColor(int line, Color color) {
             txtOutput.Select(txtOutput.GetFirstCharIndexFromLine(line), txtOutput.TextLength);
@@ -559,6 +585,7 @@ namespace PowerRefresher
 
         private void frmMain_Load(object sender, EventArgs e)
         {
+
             foreach (string command in Environment.GetCommandLineArgs())
             {
                 if (!command.Contains(".exe"))
@@ -569,13 +596,7 @@ namespace PowerRefresher
                 }
             }
         }
-
-       
-
-    
-
+            
         
-        
-
     }
 }
