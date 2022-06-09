@@ -112,24 +112,7 @@ namespace PowerRefresher
             }
         }
 
-        private void CloseApplication()
-        {
-            CreateUpdateFileLog();
-            Close();
-        }
-        private void CreateUpdateFileLog()
-        {
-            string filename = $@"{Environment.GetEnvironmentVariable("TMP")}\PowerRefresher_LogReport_{DateTime.Now:ddmmyyyy_HHmmss}.txt";
-
-            using (StreamWriter streamWriter = File.CreateText(filename))
-            {
-                streamWriter.WriteLine($"PowerRefresher ({System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}) - Update Information");
-                streamWriter.WriteLine($"\nFile: {txtInput.Text}");
-                streamWriter.WriteLine($"\n[LOGS]\n{txtOutput.Text}");
-            }
-
-            OpenFile(filename);
-        }
+        
 
         private void selectAllFieldsMenuItem_Click(object sender, EventArgs e) => setModelFieldsSelectionState(true);
         private void clearSelectionMenuItem_Click(object sender, EventArgs e) => setModelFieldsSelectionState(false);
@@ -231,6 +214,24 @@ namespace PowerRefresher
             windowPattern = (WindowPattern)pbi.GetCurrentPattern(WindowPattern.Pattern);
             windowPattern.Close();
             txtOutput.Text += "[DONE]";
+        }
+        private void CloseApplication()
+        {
+            CreateUpdateFileLog();
+            Close();
+        }
+        private void CreateUpdateFileLog()
+        {
+            string filename = $@"{Environment.GetEnvironmentVariable("TMP")}\PowerRefresher_LogReport_{DateTime.Now:ddmmyyyy_HHmmss}.txt";
+
+            using (StreamWriter streamWriter = File.CreateText(filename))
+            {
+                streamWriter.WriteLine($"PowerRefresher ({System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}) - Update Information");
+                streamWriter.WriteLine($"\nFile: {txtInput.Text}");
+                streamWriter.WriteLine($"\n[LOGS]\n{txtOutput.Text}");
+            }
+
+            OpenFile(filename);
         }
         private void SaveFile()
         {
