@@ -112,13 +112,11 @@ namespace PowerRefresher
             }
         }
 
-        
 
         private void selectAllFieldsMenuItem_Click(object sender, EventArgs e) => setModelFieldsSelectionState(true);
         private void clearSelectionMenuItem_Click(object sender, EventArgs e) => setModelFieldsSelectionState(false);
         private void copySelectedMenuItem_Click(object sender, EventArgs e) => SetTextToClipboard(txtOutput.SelectedText);
         private void selectAllTextMenuItem_Click(object sender, EventArgs e) => txtOutput.SelectAll();
-
 
 
         private void RefreshSelection()
