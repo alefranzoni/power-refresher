@@ -584,13 +584,25 @@ namespace PowerRefresher
 
         private void frmMain_Load(object sender, EventArgs e)
         {
+            string helpMessage = "You can run Power Refresher from console with the following parameters to automate the process\n\n-target=path -timeout=time -refresh=all/fields -fields=\"[field1, field2, ..., fieldN]\" -publish=true/false -workspace=name -closefile=true/false -closeapp=true/false";
+
+            // Check if the number of arguments is correct
+            if (Environment.GetCommandLineArgs().Length > 10) {
+                ShowMessage(helpMessage, MessageBoxIcon.Information);
+                return;
+            }  
 
             foreach (string command in Environment.GetCommandLineArgs())
             {
                 if (!command.Contains(".exe"))
                 {
-                    if (command.Contains("help")) ShowMessage(command, MessageBoxIcon.Information);
-                    if (command.Contains("target")) ShowMessage(command, MessageBoxIcon.Information);
+                    if (command.Contains("help"))
+                    {
+                        ShowMessage(helpMessage, MessageBoxIcon.Information);
+                        return;
+                    }
+                    //if (command.Contains("target")) 
+                        ShowMessage(command, MessageBoxIcon.Information);
                     //else mostrar error
                 }
             }
