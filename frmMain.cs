@@ -45,7 +45,10 @@ namespace PowerRefresher
         private SelectionItemPattern selectionItemPattern;
 
         private int timeout;
-        
+        private string targetCmd, refreshModeCmd, fieldsCmd, workspaceNameCmd;
+        private bool publishCmd, closeFileCmd, closeAppCmd;
+        private int timeoutCmd;
+
 
         public frmMain() => InitializeComponent();
         private void txtOutput_LinkClicked(object sender, LinkClickedEventArgs e) => OpenLink(e.LinkText);
@@ -111,8 +114,6 @@ namespace PowerRefresher
                 RefreshFailed(err);
             }
         }
-
-
         private void selectAllFieldsMenuItem_Click(object sender, EventArgs e) => setModelFieldsSelectionState(true);
         private void clearSelectionMenuItem_Click(object sender, EventArgs e) => setModelFieldsSelectionState(false);
         private void copySelectedMenuItem_Click(object sender, EventArgs e) => SetTextToClipboard(txtOutput.SelectedText);
@@ -584,26 +585,93 @@ namespace PowerRefresher
 
         private void frmMain_Load(object sender, EventArgs e)
         {
-            // Check if the number of arguments is correct
-            if (Environment.GetCommandLineArgs().Length > 10) {
+            string[] args = Environment.GetCommandLineArgs();
+   
+            if (args.Length > 10 || args[1].Contains("help") || !IsValidArgs() || !GetAndStoreArguments()) {
                 ShowMessage(Properties.Resources.helpMessage, MessageBoxIcon.Information);
                 return;
-            }  
+            }
 
-            foreach (string command in Environment.GetCommandLineArgs())
+            
+
+
+        }
+
+        private bool GetAndStoreArguments()
+        {
+            string[] args = Environment.GetCommandLineArgs();
+            for (int i = 1; i < 8; i++)
             {
-                if (!command.Contains(".exe"))
+                switch (i)
                 {
-                    if (command.Contains("help"))
-                    {
-                        ShowMessage(Properties.Resources.helpMessage, MessageBoxIcon.Information);
-                        return;
-                    }
-                    //if (command.Contains("target")) 
-                        ShowMessage(command, MessageBoxIcon.Information);
-                    //else mostrar error
+                    case 1:
+                        if (args[i] == null) return false;
+                        targetCmd = args[i].ToString();
+                        break;
+                    case 2:
+                        timeoutCmd = (int.Parse(args[i]) > 600) ? 600 : int.Parse(args[i]);
+                        break;
+                    case 3:
+                        if (args[i].ToLower() != "all" || args[i].ToLower() != "fields") return false;
+                        refreshModeCmd = args[i].ToLower();
+                        break;
+                    case 4:
+                        fieldsCmd = args[i].ToString(); 
+                        break;
+                    case 5:
+                        if (args[i].ToLower() != "false" || args[i].ToLower() != "true") return false;
+                        publishCmd = bool.Parse(args[i]);
+                        break;
+                    case 6:
+                        if (publishCmd && args[i] == null) return false;
+                        workspaceNameCmd = publishCmd ? args[i] : null;
+                        break;
+                    case 7:
+                        if (args[i].ToLower() != "false" || args[i].ToLower() != "true") return false;
+                        closeFileCmd = bool.Parse(args[i]);
+                        break;
+                    case 8:
+                        if (args[i].ToLower() != "false" || args[i].ToLower() != "true") return false;
+                        closeAppCmd = bool.Parse(args[i]);
+                        break;
                 }
             }
+            return true;
+        }
+        private bool IsValidArgs()
+        {
+            string[] args = Environment.GetCommandLineArgs();
+            for (int i = 1; i < 8; i++)
+            {
+                switch (i)
+                {
+                    case 1:
+                        if (!args[i].Contains("target")) return false;
+                        break;
+                    case 2:
+                        if (!args[i].Contains("timeout")) return false;
+                        break;
+                    case 3:
+                        if (!args[i].Contains("refresh_mode")) return false;
+                        break;
+                    case 4:
+                        if (!args[i].Contains("fields")) return false;
+                        break;
+                    case 5:
+                        if (!args[i].Contains("publish")) return false;
+                        break;
+                    case 6:
+                        if (!args[i].Contains("workspace")) return false;
+                        break;
+                    case 7:
+                        if (!args[i].Contains("closefile")) return false;
+                        break;
+                    case 8:
+                        if (!args[i].Contains("closeapp")) return false;
+                        break;
+                }
+            }
+            return true;
         }
             
         
