@@ -606,32 +606,32 @@ namespace PowerRefresher
                 {
                     case 1:
                         if (args[i] == null) return false;
-                        targetCmd = args[i].ToString();
+                        targetCmd = args[i].Replace("-target=", null);
                         break;
                     case 2:
-                        timeoutCmd = (int.Parse(args[i]) > 600) ? 600 : int.Parse(args[i]);
+                        timeoutCmd = (int.Parse(args[i].Replace("-timeout=", null)) > 600) ? 600 : int.Parse(args[i]);
                         break;
                     case 3:
-                        if (args[i].ToLower() != "all" || args[i].ToLower() != "fields") return false;
-                        refreshModeCmd = args[i].ToLower();
+                        if (args[i].Replace("-refresh_mode=", null).ToLower() != "all" || args[i].Replace("-refresh_mode=", null).ToLower() != "fields") return false;
+                        refreshModeCmd = args[i].Replace("-refresh_mode=", null).ToLower();
                         break;
                     case 4:
-                        fieldsCmd = args[i].ToString(); 
+                        fieldsCmd = args[i].Replace("-fields=", null);
                         break;
                     case 5:
-                        if (args[i].ToLower() != "false" || args[i].ToLower() != "true") return false;
+                        if (args[i].Replace("-publish=", null).ToLower() != "false" || args[i].Replace("-publish=", null).ToLower() != "true") return false;
                         publishCmd = bool.Parse(args[i]);
                         break;
                     case 6:
                         if (publishCmd && args[i] == null) return false;
-                        workspaceNameCmd = publishCmd ? args[i] : null;
+                        workspaceNameCmd = publishCmd ? args[i].Replace("-workspace=", null) : null;
                         break;
                     case 7:
-                        if (args[i].ToLower() != "false" || args[i].ToLower() != "true") return false;
+                        if (args[i].Replace("-closefile=", null).ToLower() != "false" || args[i].Replace("-closefile=", null).ToLower() != "true") return false;
                         closeFileCmd = bool.Parse(args[i]);
                         break;
                     case 8:
-                        if (args[i].ToLower() != "false" || args[i].ToLower() != "true") return false;
+                        if (args[i].Replace("-closeapp=", null).ToLower() != "false" || args[i].Replace("-closeapp=", null).ToLower() != "true") return false;
                         closeAppCmd = bool.Parse(args[i]);
                         break;
                 }
