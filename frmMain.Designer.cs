@@ -364,6 +364,7 @@ namespace PowerRefresher
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "PowerRefresher GUI @ Alejandro Franzoni Gimenez";
             this.Load += new System.EventHandler(this.frmMain_Load);
+            this.Shown += new System.EventHandler(this.frmMain_Shown);
             this.gbInput.ResumeLayout(false);
             this.gbInput.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericTimeout)).EndInit();

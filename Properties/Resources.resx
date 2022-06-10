@@ -120,6 +120,6 @@
   <data name="helpMessage" xml:space="preserve">
     <value>You can run Power Refresher from console with the following parameters to automate the process
 
--target=path -timeout=time -refresh=all/fields -fields="[field1, field2, ..., fieldN]" -publish=true/false -workspace=name -closefile=true/false -closeapp=true/false</value>
+-target=path -timeout=time -refresh_mode=all/fields -fields="[field1, field2, ..., fieldN]" -publish=true/false -workspace=name -closefile=true/false -closeapp=true/false</value>
   </data>
 </root>
