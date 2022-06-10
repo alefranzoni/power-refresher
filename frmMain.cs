@@ -609,7 +609,7 @@ namespace PowerRefresher
                         targetCmd = args[i].Replace("-target=", null);
                         break;
                     case 2:
-                        timeoutCmd = (int.Parse(args[i].Replace("-timeout=", null)) > 600) ? 600 : int.Parse(args[i]);
+                        timeoutCmd = (int.Parse(args[i].Replace("-timeout=", null)) > 600) ? 600 : int.Parse(args[i].Replace("-timeout=", null));
                         break;
                     case 3:
                         if (args[i].Replace("-refresh_mode=", null).ToLower() != "all" || args[i].Replace("-refresh_mode=", null).ToLower() != "fields") return false;
