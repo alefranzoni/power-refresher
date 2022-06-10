@@ -46,9 +46,8 @@ namespace PowerRefresher
 
         private int timeout;
         private string targetCmd, refreshModeCmd, fieldsCmd, workspaceNameCmd;
-        private bool publishCmd, closeFileCmd, closeAppCmd;
+        private bool publishCmd, closeFileCmd, closeAppCmd, userArgsPassed;
         private int timeoutCmd;
-        private bool userArgsPassed;
 
         public frmMain() => InitializeComponent();
         private void frmMain_Load(object sender, EventArgs e)
