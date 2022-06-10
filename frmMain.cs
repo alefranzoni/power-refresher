@@ -377,7 +377,7 @@ namespace PowerRefresher
         {
             string commandLineScript = $"\"{Process.GetCurrentProcess().MainModule.FileName}\" -target=\"{txtInput.Text}\" ";
             commandLineScript += $"-timeout={numericTimeout.Value} ";
-            commandLineScript += $"-refresh={(chkRefreshAll.Checked ? "all" : "fields")} ";
+            commandLineScript += $"-refresh_mode={(chkRefreshAll.Checked ? "all" : "fields")} ";
             commandLineScript += $"-fields=\"{(chkRefreshAll.Checked ? null : GetSelectedFieldsForScript())}\" ";
             commandLineScript += $"-publish={chkPublish.Checked} ";
             commandLineScript += $"-workspace=\"{(chkPublish.Checked ? txtWorkspace.Text : null)}\" ";
