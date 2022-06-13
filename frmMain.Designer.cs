@@ -30,6 +30,7 @@ namespace PowerRefresher
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMain));
             this.lblTitle = new System.Windows.Forms.Label();
             this.gbInput = new System.Windows.Forms.GroupBox();
             this.numericTimeout = new System.Windows.Forms.NumericUpDown();
@@ -370,6 +371,7 @@ namespace PowerRefresher
             this.Controls.Add(this.gbInput);
             this.Controls.Add(this.lblTitle);
             this.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.Name = "frmMain";
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
