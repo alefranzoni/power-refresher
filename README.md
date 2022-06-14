@@ -128,7 +128,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 <!-- CONTACT -->
 ## Contact
-Alejandro Franzoni Gimenez - contacto@alejandrofranzoni.com.ar <br><br>
+contacto@alejandrofranzoni.com.ar <br><br>
 <p align="right">(<a href="#top">↑ Top</a>)</p>
 
 <!-- MD LINKS & IMAGES -->
