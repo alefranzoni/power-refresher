@@ -22,9 +22,9 @@
   <p align="center">
     Automate manual updating and publishing of your Power BI Desktop files!
     <br />
-    🪲 <a href="https://github.com/alefranzoni/power-refresher/issues">Report Bug</a>
+    <a href="https://github.com/alefranzoni/power-refresher/issues">Report Bug</a>
     ·
-    🪶 <a href="https://github.com/alefranzoni/power-refresher/issues">Request Feature</a>
+    <a href="https://github.com/alefranzoni/power-refresher/issues">Request Feature</a>
   </p>
 </div>
 
@@ -54,7 +54,7 @@
 <!-- ABOUT -->
 ## About The Project
 
-<img src="images/screenshot.png" alt="screenshot" width="35%">
+<img src="images/screenshot.png" alt="screenshot">
 
 **Power Refresher** was developed to automate the manual updating and publishing process of Power BI Desktop files. But, how does the application achieve it? Making use of the **UI Automation** library to catch and manipulate the Power BI Application UI controls to do the desired task.
 
@@ -74,14 +74,14 @@ Simply, you have to execute the program and set all the options shown in the use
 
 - **Input**
   * Browse/Set: *Press to browse and select the target `*.pbix` file*
-  * Timeout: *Set the waiting timeout, in seconds, for file to be opened (max: 600)* <br><br><img src="images/input_file.png" alt="input" width="35%">
+  * Timeout: *Set the waiting timeout, in seconds, for file to be opened (max: 600)* <br><br><img src="images/input_file.png" alt="input" >
 - **Options**
   * Refresh all: *Check to refresh all the queries/tables/fields present on the model. If uncheck this option, you have to select which fields want to be updated from the below list.*
   * Publish: *Check to publish your file into a workspace after it has been updated. You must put the target workspace name in the box next to the checkbox control.* 
   * Close file on finish: *Check to close `*.pbix` file on process finish*
-  * Close application on finish: *Check to close `PowerRefresher` on process finish. If this option is enabled, when the application is closed, a log file will be created and shown with all the update details* <br><br><img src="images/options_gui.png" alt="options" width="35%">
+  * Close application on finish: *Check to close `PowerRefresher` on process finish. If this option is enabled, when the application is closed, a log file will be created and shown with all the update details* <br><br><img src="images/options_gui.png" alt="options">
 - **Output**
-  * *Just a simple log console that will show you useful information about the process like information messages, errors, and more* <br><br><img src="images/output.png" alt="output" width="35%">
+  * *Just a simple log console that will show you useful information about the process like information messages, errors, and more* <br><br><img src="images/output.png" alt="output">
 - **Buttons**
   *  Generate Script: *Through this button, you could generate the string to execute the app with command line args, based in your current configuration. Plus, you could generate and save a batch file and just execute it to run the app in a scheduled task, for example*
   *  Refresh: *Start the refresh process* <br><br><img src="images/buttons.png" alt="buttons" width="30%">
