@@ -54,7 +54,7 @@
 <!-- ABOUT -->
 ## About The Project
 
-<img src="images/screenshot.png" alt="screenshot">
+<img src="images/screenshot.png" alt="screenshot" width="75%">
 
 **Power Refresher** was developed to automate the manual updating and publishing process of Power BI Desktop files. But, how does the application achieve it? Making use of the **UI Automation** library to catch and manipulate the Power BI Application UI controls to do the desired task.
 
@@ -84,7 +84,7 @@ Simply, you have to execute the program and set all the options shown in the use
   * *Just a simple log console that will show you useful information about the process like information messages, errors, and more* <br><br><img src="images/output.png" alt="output">
 - **Buttons**
   *  Generate Script: *Through this button, you could generate the string to execute the app with command line args, based in your current configuration. Plus, you could generate and save a batch file and just execute it to run the app in a scheduled task, for example*
-  *  Refresh: *Start the refresh process* <br><br><img src="images/buttons.png" alt="buttons" width="30%">
+  *  Refresh: *Start the refresh process* <br><br><img src="images/buttons.png" alt="buttons">
 
 <p align="right">(<a href="#top">↑ Top</a>)</p>
 
