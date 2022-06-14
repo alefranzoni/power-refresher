@@ -6,12 +6,12 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("PowerRefresher")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Automate manual updating and publishing of your Power BI Desktop files!")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Alejandro Franzoni Gimenez")]
 [assembly: AssemblyProduct("PowerRefresher")]
-[assembly: AssemblyCopyright("Copyright ©  2022")]
-[assembly: AssemblyTrademark("")]
+[assembly: AssemblyCopyright("Copyright ©  2022 - Alejandro Franzoni Gimenez")]
+[assembly: AssemblyTrademark("www.alejandrofranzoni.com.ar")]
 [assembly: AssemblyCulture("")]
 
 // Setting ComVisible to false makes the types in this assembly not visible
