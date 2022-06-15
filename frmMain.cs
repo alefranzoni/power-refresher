@@ -252,6 +252,8 @@ namespace PowerRefresher
 
                 //Selecting field if needed
                 if (refreshModeCmd == "fields") SetModelFieldsFromArgs();
+
+                Thread.Sleep(3000);
             }
             catch (Exception e)
             {
