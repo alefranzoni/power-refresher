@@ -117,6 +117,7 @@ Run the **PowerRefresher** application by passing the following arguments:
 ## Roadmap
 - [ ] Multi-language Support
     - [ ] Spanish
+- [ ] Migration to WinUI 3
 
 Check the [open issues](https://github.com/alefranzoni/power-refresher/issues) section for a full list of proposed features (and known issues).
 <p align="right">(<a href="#top">↑ Top</a>)</p>
