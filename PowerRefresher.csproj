@@ -56,16 +56,22 @@
     <ApplicationIcon>PowerRefresher.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>38425C5D6235360F95F0D7F6CD0070585BBC88C5</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>EA52966F35B3EDF5D9F5461035A381A2DEB72D57</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestKeyFile>PowerRefresher_TemporaryKey.pfx</ManifestKeyFile>
+    <ManifestKeyFile>sgKey.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <GenerateManifests>true</GenerateManifests>
   </PropertyGroup>
   <PropertyGroup>
-    <SignManifests>true</SignManifests>
+    <SignManifests>false</SignManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>false</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>sgKey.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -118,6 +124,8 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <None Include="sgKey.pfx" />
+    <None Include="sgKey.snk" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
