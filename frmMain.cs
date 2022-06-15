@@ -71,6 +71,7 @@ namespace PowerRefresher
             {
                 SetFormValues();
                 GetFileData();
+                Thread.Sleep(1500);
                 cmdStartRefresh.PerformClick();
             }
         }
@@ -203,7 +204,7 @@ namespace PowerRefresher
 
                 if (fieldSelected)
                 {
-                    Thread.Sleep(1000);
+                    Thread.Sleep(800);
                     WaitForWorkingDialog();
                 }
 
@@ -252,8 +253,6 @@ namespace PowerRefresher
 
                 //Selecting field if needed
                 if (refreshModeCmd == "fields") SetModelFieldsFromArgs();
-
-                Thread.Sleep(3000);
             }
             catch (Exception e)
             {
@@ -589,9 +588,8 @@ namespace PowerRefresher
             {
                 pbi.SetFocus();
                 selectionItemPattern.Select();
-                Thread.Sleep(100);
                 SendKeys.SendWait("+{F10}");
-                Thread.Sleep(100);
+                Thread.Sleep(1000);
                 refreshContextualMenu = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, REFRESH_CONTEXTUAL_MENU));
             } while (refreshContextualMenu == null);
 
@@ -676,7 +674,7 @@ namespace PowerRefresher
                     timeout += 1;
                     Thread.Sleep(100);
                     refreshDialog = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, REFRESH_DIALOG));
-                } while (refreshDialog == null && timeout <= 25);
+                } while (refreshDialog == null && timeout <= 15);
                 txtOutput.Text += "[DONE]";
             }
             catch (Exception e)
