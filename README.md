@@ -140,7 +140,7 @@ contacto@alejandrofranzoni.com.ar <br><br>
 [stars-url]: https://github.com/alefranzoni/power-refresher/stargazers
 [issues-shield]: https://img.shields.io/github/issues/alefranzoni/power-refresher
 [issues-url]: https://github.com/alefranzoni/power-refresher/issues
-[downloads-shield]: https://img.shields.io/github/downloads/alefranzoni/power-refresher/total
+[downloads-shield]: https://img.shields.io/github/downloads/alefranzoni/power-refresher/t
 [downloads-url]: https://github.com/alefranzoni/power-refresher/releases
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-blue.svg?logo=linkedin
 [linkedin-url]: https://linkedin.com/in/alejandrofranzonig
