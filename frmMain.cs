@@ -196,7 +196,6 @@ namespace PowerRefresher
                     txtOutput.Text += $"\n[INFO] FIELD {selectedFieldsUpdatedCounter + 1}/{selectedFieldsCounter} ({treeElementNode.Current.Name})";
                     fieldSelected = true;
 
-                    GetSelectionItemPattern();
                     OpenContextualMenuAndRefresh();
                     LookForRefreshDialog();
                     WaitForRefreshToFinish();
@@ -209,7 +208,6 @@ namespace PowerRefresher
 
                 if (fieldSelected)
                 {
-                    Thread.Sleep(800);
                     WaitForWorkingDialog();
                 }
 
@@ -637,12 +635,15 @@ namespace PowerRefresher
              * 2) Send the hotkey [Shift+F10] with a previous selected field/table
              **/
 
+            GetSelectionItemPattern();
             do
             {
                 pbi.SetFocus();
                 selectionItemPattern.Select();
-                SendKeys.SendWait("+{F10}");
-                Thread.Sleep(1000);
+                selectionItemPattern.Select();
+                selectionItemPattern.Select();
+                SendKeys.Send("+{F10}");
+                Thread.Sleep(300);
                 refreshContextualMenu = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, REFRESH_CONTEXTUAL_MENU));
             } while (refreshContextualMenu == null);
 
@@ -701,7 +702,7 @@ namespace PowerRefresher
         {
             do
             {
-                Thread.Sleep(200);
+                Thread.Sleep(1000);
                 saveDialog = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, SAVE_WAIT_MESSAGE));
             } while (saveDialog != null);
         }
