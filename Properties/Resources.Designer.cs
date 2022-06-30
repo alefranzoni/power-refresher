@@ -63,7 +63,7 @@ namespace PowerRefresher.Properties {
         /// <summary>
         ///   Looks up a localized string similar to You can run Power Refresher from console with the following parameters to automate the process
         ///
-        ///-target=path -timeout=time -refresh_mode=all/fields -fields=&quot;[field1, field2, ..., fieldN]&quot; -publish=true/false -workspace=name -closefile=true/false -closeapp=true/false.
+        ///-target=path -timeout=time -refresh_mode=all/fields -fields=&quot;[field1, field2, ..., fieldN]&quot; -publish=true/false -workspace=name -closefile=true/false -closeapp=true/false -pbi_lang=en/es.
         /// </summary>
         internal static string helpMessage {
             get {
