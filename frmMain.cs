@@ -59,7 +59,7 @@ namespace PowerRefresher
 
             if (args.Length == 1) return;
 
-            if (args.Length > 11 || args[1].Contains("help") || !IsValidArgs() || !GetAndStoreArguments())
+            if (args.Length != 11 || args[1].Contains("help") || !IsValidArgs() || !GetAndStoreArguments())
             {
                 ShowMessage(Properties.Resources.helpMessage, MessageBoxIcon.Information);
                 return;
