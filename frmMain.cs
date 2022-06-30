@@ -72,6 +72,7 @@ namespace PowerRefresher
             if (userArgsPassed)
             {
                 SetFormValues();
+                SetPbiControlStringsByLang(englishAppLang.Checked ? "en" : "es");
                 GetFileData();
                 Thread.Sleep(1500);
                 cmdStartRefresh.PerformClick();
@@ -159,7 +160,9 @@ namespace PowerRefresher
             txtOutput.SelectionStart = txtOutput.TextLength;
             txtOutput.ScrollToCaret();
         }
-   
+        private void englishAppLang_CheckedChanged(object sender, EventArgs e) => SetPbiControlStringsByLang(englishAppLang.Checked ? "en" : "es");
+        private void spanishAppLang_CheckedChanged(object sender, EventArgs e) => SetPbiControlStringsByLang(englishAppLang.Checked ? "en" : "es");
+
         private void selectAllFieldsMenuItem_Click(object sender, EventArgs e) => SetModelFieldsSelectionState(true);
         private void clearSelectionMenuItem_Click(object sender, EventArgs e) => SetModelFieldsSelectionState(false);
         private void copySelectedMenuItem_Click(object sender, EventArgs e) => SetTextToClipboard(txtOutput.SelectedText);
@@ -214,46 +217,6 @@ namespace PowerRefresher
             } while (treeElementNode != null);
         }
 
-        private void GetControlStringsByLang(string lang) 
-        {
-            switch (lang.ToLower())
-            {
-                case "es":
-                    REFRESH_BUTTON = "refreshQueries";
-                    REFRESH_DIALOG = "modalDialog";
-                    CANCEL_REFRESH_BUTTON = "Cerrar";
-                    SAVE_BUTTON = "save";
-                    SAVE_WAIT_MESSAGE = "En proceso";
-                    PUBLISH_BUTTON = "publish";
-                    PUBLISH_GROUP_DIALOG = "KoPublishToGroupDialog";
-                    PUBLISH_DIALOG = "KoPublishDialog";
-                    WORKSPACE_CONTAINER = "list";
-                    SELECT_BUTTON = "Seleccionar";
-                    REPLACE_DIALOG = "KoPublishWithImpactViewDialog";
-                    REPLACE_BUTTON = "Reemplazar";
-                    SUCCESS_PUBLISH = "Entendido";
-                    REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
-                    break;
-                case "en":
-                    REFRESH_BUTTON = "refreshQueries";
-                    REFRESH_DIALOG = "modalDialog";
-                    CANCEL_REFRESH_BUTTON = "Close";
-                    SAVE_BUTTON = "save";
-                    SAVE_WAIT_MESSAGE = "Working on it";
-                    PUBLISH_BUTTON = "publish";
-                    PUBLISH_GROUP_DIALOG = "KoPublishToGroupDialog";
-                    PUBLISH_DIALOG = "KoPublishDialog";
-                    WORKSPACE_CONTAINER = "list";
-                    SELECT_BUTTON = "Select";
-                    REPLACE_DIALOG = "KoPublishWithImpactViewDialog";
-                    REPLACE_BUTTON = "Replace";
-                    SUCCESS_PUBLISH = "Got it";
-                    REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
-                    break;
-                default:
-                    break;
-            }
-        }
         private void GetTreeContainer()
         {
             do
@@ -354,7 +317,47 @@ namespace PowerRefresher
             }
             return fields += "]";
         }
-
+        
+        private void SetPbiControlStringsByLang(string lang)
+        {
+            switch (lang.ToLower())
+            {
+                case "es":
+                    REFRESH_BUTTON = "refreshQueries";
+                    REFRESH_DIALOG = "modalDialog";
+                    CANCEL_REFRESH_BUTTON = "Cerrar";
+                    SAVE_BUTTON = "save";
+                    SAVE_WAIT_MESSAGE = "En proceso";
+                    PUBLISH_BUTTON = "publish";
+                    PUBLISH_GROUP_DIALOG = "KoPublishToGroupDialog";
+                    PUBLISH_DIALOG = "KoPublishDialog";
+                    WORKSPACE_CONTAINER = "list";
+                    SELECT_BUTTON = "Seleccionar";
+                    REPLACE_DIALOG = "KoPublishWithImpactViewDialog";
+                    REPLACE_BUTTON = "Reemplazar";
+                    SUCCESS_PUBLISH = "Entendido";
+                    REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
+                    break;
+                case "en":
+                    REFRESH_BUTTON = "refreshQueries";
+                    REFRESH_DIALOG = "modalDialog";
+                    CANCEL_REFRESH_BUTTON = "Close";
+                    SAVE_BUTTON = "save";
+                    SAVE_WAIT_MESSAGE = "Working on it";
+                    PUBLISH_BUTTON = "publish";
+                    PUBLISH_GROUP_DIALOG = "KoPublishToGroupDialog";
+                    PUBLISH_DIALOG = "KoPublishDialog";
+                    WORKSPACE_CONTAINER = "list";
+                    SELECT_BUTTON = "Select";
+                    REPLACE_DIALOG = "KoPublishWithImpactViewDialog";
+                    REPLACE_BUTTON = "Replace";
+                    SUCCESS_PUBLISH = "Got it";
+                    REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
+                    break;
+                default:
+                    break;
+            }
+        }
         private void SetModelFieldsFromArgs()
         {
             string[] fieldsFromArgs = fieldsCmd.Replace("[", null).Replace("]", null).Split(',');
@@ -746,6 +749,7 @@ namespace PowerRefresher
                 throw new Exception("An error has occurred trying to invoke refresh button. " + e.Message + "\n");
             }
         }
+
         private void FetchFieldsFromModel()
         {
             txtOutput.Text += "\nFetching fields from PowerBI model... ";
