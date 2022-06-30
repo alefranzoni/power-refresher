@@ -436,6 +436,7 @@ namespace PowerRefresher
             commandLineScript += $"-workspace=\"{(chkPublish.Checked ? txtWorkspace.Text : null)}\" ";
             commandLineScript += $"-closefile={chkCloseFileOnFinish.Checked} ";
             commandLineScript += $"-closeapp={chkCloseAppOnFinish.Checked}";
+            commandLineScript += $"-pbi_lang={(englishAppLang.Checked ? "en" : "es")}";
 
             SetTextToClipboard(commandLineScript);
             txtOutput.Text += "\n[INFO] Script was generated successfully and copied to clipboard.";
