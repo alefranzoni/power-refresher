@@ -435,7 +435,7 @@ namespace PowerRefresher
             commandLineScript += $"-publish={chkPublish.Checked} ";
             commandLineScript += $"-workspace=\"{(chkPublish.Checked ? txtWorkspace.Text : null)}\" ";
             commandLineScript += $"-closefile={chkCloseFileOnFinish.Checked} ";
-            commandLineScript += $"-closeapp={chkCloseAppOnFinish.Checked}";
+            commandLineScript += $"-closeapp={chkCloseAppOnFinish.Checked} ";
             commandLineScript += $"-pbi_lang={(englishAppLang.Checked ? "en" : "es")}";
 
             SetTextToClipboard(commandLineScript);
