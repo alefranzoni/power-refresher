@@ -47,7 +47,7 @@ namespace PowerRefresher
         private SelectionItemPattern selectionItemPattern;
 
         private int timeout;
-        private string targetCmd, refreshModeCmd, fieldsCmd, workspaceNameCmd;
+        private string targetCmd, refreshModeCmd, fieldsCmd, workspaceNameCmd, pbiLangCmd;
         private bool publishCmd, closeFileCmd, closeAppCmd, userArgsPassed;
         private int timeoutCmd;
 
@@ -59,7 +59,7 @@ namespace PowerRefresher
 
             if (args.Length == 1) return;
 
-            if (args.Length > 10 || args[1].Contains("help") || !IsValidArgs() || !GetAndStoreArguments())
+            if (args.Length > 11 || args[1].Contains("help") || !IsValidArgs() || !GetAndStoreArguments())
             {
                 ShowMessage(Properties.Resources.helpMessage, MessageBoxIcon.Information);
                 return;
@@ -269,7 +269,7 @@ namespace PowerRefresher
         private bool GetAndStoreArguments()
         {
             string[] args = Environment.GetCommandLineArgs();
-            for (int i = 1; i <= 8; i++)
+            for (int i = 1; i <= 9; i++)
             {
                 switch (i)
                 {
@@ -303,6 +303,10 @@ namespace PowerRefresher
                     case 8:
                         if (args[i].Replace("-closeapp=", null).ToLower() != "false" && args[i].Replace("-closeapp=", null).ToLower() != "true") return false;
                         closeAppCmd = args[i].Replace("-closeapp=", null).ToLower() == "true";
+                        break;
+                    case 9:
+                        if (args[i].Replace("-pbi_lang=", null).ToLower() != "en" && args[i].Replace("-pbi_lang=", null).ToLower() != "es") return false;
+                        pbiLangCmd = args[i].Replace("-pbi_lang=", null).ToLower();
                         break;
                 }
             }
@@ -403,6 +407,9 @@ namespace PowerRefresher
         private void SetFormValues()
         {
             txtInput.Text = targetCmd;
+            englishAppLang.Checked = pbiLangCmd == "en";
+            spanishAppLang.Checked = pbiLangCmd == "es";
+            SetPbiControlStringsByLang(pbiLangCmd);
             numericTimeout.Value = timeoutCmd;
             chkRefreshAll.Checked = refreshModeCmd == "all";
             chkPublish.Checked = publishCmd;
@@ -772,7 +779,7 @@ namespace PowerRefresher
         private bool IsValidArgs()
         {
             string[] args = Environment.GetCommandLineArgs();
-            for (int i = 1; i < 8; i++)
+            for (int i = 1; i < 9; i++)
             {
                 switch (i)
                 {
@@ -799,6 +806,9 @@ namespace PowerRefresher
                         break;
                     case 8:
                         if (!args[i].Contains("closeapp")) return false;
+                        break;
+                    case 9:
+                        if (!args[i].Contains("pbi_lang")) return false;
                         break;
                 }
             }
