@@ -402,7 +402,7 @@ namespace PowerRefresher
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.ClientSize = new System.Drawing.Size(466, 593);
+            this.ClientSize = new System.Drawing.Size(466, 566);
             this.Controls.Add(this.cmdGenerateScript);
             this.Controls.Add(this.cmdStartRefresh);
             this.Controls.Add(this.grOutput);
