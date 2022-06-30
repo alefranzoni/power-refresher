@@ -120,7 +120,7 @@
   <data name="helpMessage" xml:space="preserve">
     <value>You can run Power Refresher from console with the following parameters to automate the process
 
--target=path -timeout=time -refresh_mode=all/fields -fields="[field1, field2, ..., fieldN]" -publish=true/false -workspace=name -closefile=true/false -closeapp=true/false</value>
+-target=path -timeout=time -refresh_mode=all/fields -fields="[field1, field2, ..., fieldN]" -publish=true/false -workspace=name -closefile=true/false -closeapp=true/false -pbi_lang=en/es</value>
   </data>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="PowerRefresher" type="System.Resources.ResXFileRef, System.Windows.Forms">

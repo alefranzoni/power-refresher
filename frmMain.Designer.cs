@@ -57,6 +57,9 @@ namespace PowerRefresher
             this.cmdStartRefresh = new System.Windows.Forms.Button();
             this.helpToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.cmdGenerateScript = new System.Windows.Forms.Button();
+            this.pbiLangLabel = new System.Windows.Forms.Label();
+            this.englishAppLang = new System.Windows.Forms.RadioButton();
+            this.spanishAppLang = new System.Windows.Forms.RadioButton();
             this.gbInput.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericTimeout)).BeginInit();
             this.gbOptions.SuspendLayout();
@@ -78,13 +81,16 @@ namespace PowerRefresher
             // 
             // gbInput
             // 
+            this.gbInput.Controls.Add(this.spanishAppLang);
+            this.gbInput.Controls.Add(this.englishAppLang);
+            this.gbInput.Controls.Add(this.pbiLangLabel);
             this.gbInput.Controls.Add(this.numericTimeout);
             this.gbInput.Controls.Add(this.lblTimeout);
             this.gbInput.Controls.Add(this.cmdSetInput);
             this.gbInput.Controls.Add(this.txtInput);
             this.gbInput.Location = new System.Drawing.Point(12, 52);
             this.gbInput.Name = "gbInput";
-            this.gbInput.Size = new System.Drawing.Size(442, 59);
+            this.gbInput.Size = new System.Drawing.Size(442, 79);
             this.gbInput.TabIndex = 1;
             this.gbInput.TabStop = false;
             this.gbInput.Text = "Input";
@@ -154,7 +160,7 @@ namespace PowerRefresher
             this.gbOptions.Controls.Add(this.chkCloseFileOnFinish);
             this.gbOptions.Controls.Add(this.chkPublish);
             this.gbOptions.Controls.Add(this.chkRefreshAll);
-            this.gbOptions.Location = new System.Drawing.Point(12, 117);
+            this.gbOptions.Location = new System.Drawing.Point(12, 139);
             this.gbOptions.Name = "gbOptions";
             this.gbOptions.Size = new System.Drawing.Size(442, 236);
             this.gbOptions.TabIndex = 2;
@@ -286,7 +292,7 @@ namespace PowerRefresher
             // grOutput
             // 
             this.grOutput.Controls.Add(this.txtOutput);
-            this.grOutput.Location = new System.Drawing.Point(12, 361);
+            this.grOutput.Location = new System.Drawing.Point(12, 383);
             this.grOutput.Name = "grOutput";
             this.grOutput.Size = new System.Drawing.Size(442, 143);
             this.grOutput.TabIndex = 3;
@@ -339,7 +345,7 @@ namespace PowerRefresher
             // cmdStartRefresh
             // 
             this.cmdStartRefresh.Enabled = false;
-            this.cmdStartRefresh.Location = new System.Drawing.Point(315, 512);
+            this.cmdStartRefresh.Location = new System.Drawing.Point(315, 534);
             this.cmdStartRefresh.Name = "cmdStartRefresh";
             this.cmdStartRefresh.Size = new System.Drawing.Size(139, 23);
             this.cmdStartRefresh.TabIndex = 4;
@@ -350,7 +356,7 @@ namespace PowerRefresher
             // 
             // cmdGenerateScript
             // 
-            this.cmdGenerateScript.Location = new System.Drawing.Point(172, 512);
+            this.cmdGenerateScript.Location = new System.Drawing.Point(172, 534);
             this.cmdGenerateScript.Name = "cmdGenerateScript";
             this.cmdGenerateScript.Size = new System.Drawing.Size(139, 23);
             this.cmdGenerateScript.TabIndex = 4;
@@ -358,12 +364,45 @@ namespace PowerRefresher
             this.cmdGenerateScript.UseVisualStyleBackColor = true;
             this.cmdGenerateScript.Click += new System.EventHandler(this.cmdGenerateScript_Click);
             // 
+            // pbiLangLabel
+            // 
+            this.pbiLangLabel.AutoSize = true;
+            this.pbiLangLabel.Location = new System.Drawing.Point(7, 56);
+            this.pbiLangLabel.Name = "pbiLangLabel";
+            this.pbiLangLabel.Size = new System.Drawing.Size(169, 13);
+            this.pbiLangLabel.TabIndex = 3;
+            this.pbiLangLabel.Text = "PowerBI Applicaction Language";
+            // 
+            // englishAppLang
+            // 
+            this.englishAppLang.AutoSize = true;
+            this.englishAppLang.Checked = true;
+            this.englishAppLang.Location = new System.Drawing.Point(182, 54);
+            this.englishAppLang.Name = "englishAppLang";
+            this.englishAppLang.Size = new System.Drawing.Size(63, 17);
+            this.englishAppLang.TabIndex = 4;
+            this.englishAppLang.TabStop = true;
+            this.englishAppLang.Text = "English";
+            this.englishAppLang.UseVisualStyleBackColor = true;
+            this.englishAppLang.CheckedChanged += new System.EventHandler(this.englishAppLang_CheckedChanged);
+            // 
+            // spanishAppLang
+            // 
+            this.spanishAppLang.AutoSize = true;
+            this.spanishAppLang.Location = new System.Drawing.Point(247, 54);
+            this.spanishAppLang.Name = "spanishAppLang";
+            this.spanishAppLang.Size = new System.Drawing.Size(66, 17);
+            this.spanishAppLang.TabIndex = 4;
+            this.spanishAppLang.Text = "Spanish";
+            this.spanishAppLang.UseVisualStyleBackColor = true;
+            this.spanishAppLang.CheckedChanged += new System.EventHandler(this.spanishAppLang_CheckedChanged);
+            // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.ClientSize = new System.Drawing.Size(466, 544);
+            this.ClientSize = new System.Drawing.Size(466, 566);
             this.Controls.Add(this.cmdGenerateScript);
             this.Controls.Add(this.cmdStartRefresh);
             this.Controls.Add(this.grOutput);
@@ -420,6 +459,9 @@ namespace PowerRefresher
         private System.Windows.Forms.ToolStripMenuItem selectAllTextMenuItem;
         private System.Windows.Forms.CheckBox chkCloseAppOnFinish;
         private System.Windows.Forms.Button cmdGenerateScript;
+        private System.Windows.Forms.RadioButton spanishAppLang;
+        private System.Windows.Forms.RadioButton englishAppLang;
+        private System.Windows.Forms.Label pbiLangLabel;
     }
 }
 

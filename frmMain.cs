@@ -10,20 +10,22 @@ namespace PowerRefresher
 {
     public partial class frmMain : Form
     {
-        private const string REFRESH_BUTTON = "refreshQueries";
-        private const string REFRESH_DIALOG = "modalDialog";
-        private const string CANCEL_REFRESH_BUTTON = "Close";
-        private const string SAVE_BUTTON = "save";
-        private const string SAVE_WAIT_MESSAGE = "Working on it";
-        private const string PUBLISH_BUTTON = "publish";
-        private const string PUBLISH_GROUP_DIALOG = "KoPublishToGroupDialog";
-        private const string PUBLISH_DIALOG = "KoPublishDialog";
-        private const string WORKSPACE_CONTAINER = "list";
-        private const string SELECT_BUTTON = "Select";
-        private const string REPLACE_DIALOG = "KoPublishWithImpactViewDialog";
-        private const string REPLACE_BUTTON = "Replace";
-        private const string SUCCESS_PUBLISH = "Got it";
-        private const string REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
+        //Default Control Strings : English
+        private string REFRESH_BUTTON = "refreshQueries";
+        private string REFRESH_DIALOG = "modalDialog";
+        private string CANCEL_REFRESH_BUTTON = "Close";
+        private string SAVE_BUTTON = "save";
+        private string SAVE_WAIT_MESSAGE = "Working on it";
+        private string PUBLISH_BUTTON = "publish";
+        private string PUBLISH_GROUP_DIALOG = "KoPublishToGroupDialog";
+        private string PUBLISH_DIALOG = "KoPublishDialog";
+        private string WORKSPACE_CONTAINER = "list";
+        private string SELECT_BUTTON = "Select";
+        private string REPLACE_DIALOG = "KoPublishWithImpactViewDialog";
+        private string REPLACE_BUTTON = "Replace";
+        private string SUCCESS_PUBLISH = "Got it";
+        private string REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
+
 
         private AutomationElement desktop;
         private AutomationElement pbi;
@@ -45,7 +47,7 @@ namespace PowerRefresher
         private SelectionItemPattern selectionItemPattern;
 
         private int timeout;
-        private string targetCmd, refreshModeCmd, fieldsCmd, workspaceNameCmd;
+        private string targetCmd, refreshModeCmd, fieldsCmd, workspaceNameCmd, pbiLangCmd;
         private bool publishCmd, closeFileCmd, closeAppCmd, userArgsPassed;
         private int timeoutCmd;
 
@@ -57,7 +59,7 @@ namespace PowerRefresher
 
             if (args.Length == 1) return;
 
-            if (args.Length > 10 || args[1].Contains("help") || !IsValidArgs() || !GetAndStoreArguments())
+            if ((args.Length < 10 && args.Length > 1) || (args.Length > 10 && args.Length > 1) || args[1].Contains("help") || !IsValidArgs() || !GetAndStoreArguments())
             {
                 ShowMessage(Properties.Resources.helpMessage, MessageBoxIcon.Information);
                 return;
@@ -70,6 +72,7 @@ namespace PowerRefresher
             if (userArgsPassed)
             {
                 SetFormValues();
+                SetPbiControlStringsByLang(englishAppLang.Checked ? "en" : "es");
                 GetFileData();
                 Thread.Sleep(1500);
                 cmdStartRefresh.PerformClick();
@@ -157,7 +160,9 @@ namespace PowerRefresher
             txtOutput.SelectionStart = txtOutput.TextLength;
             txtOutput.ScrollToCaret();
         }
-   
+        private void englishAppLang_CheckedChanged(object sender, EventArgs e) => SetPbiControlStringsByLang(englishAppLang.Checked ? "en" : "es");
+        private void spanishAppLang_CheckedChanged(object sender, EventArgs e) => SetPbiControlStringsByLang(englishAppLang.Checked ? "en" : "es");
+
         private void selectAllFieldsMenuItem_Click(object sender, EventArgs e) => SetModelFieldsSelectionState(true);
         private void clearSelectionMenuItem_Click(object sender, EventArgs e) => SetModelFieldsSelectionState(false);
         private void copySelectedMenuItem_Click(object sender, EventArgs e) => SetTextToClipboard(txtOutput.SelectedText);
@@ -264,7 +269,7 @@ namespace PowerRefresher
         private bool GetAndStoreArguments()
         {
             string[] args = Environment.GetCommandLineArgs();
-            for (int i = 1; i <= 8; i++)
+            for (int i = 1; i <= 9; i++)
             {
                 switch (i)
                 {
@@ -299,6 +304,10 @@ namespace PowerRefresher
                         if (args[i].Replace("-closeapp=", null).ToLower() != "false" && args[i].Replace("-closeapp=", null).ToLower() != "true") return false;
                         closeAppCmd = args[i].Replace("-closeapp=", null).ToLower() == "true";
                         break;
+                    case 9:
+                        if (args[i].Replace("-pbi_lang=", null).ToLower() != "en" && args[i].Replace("-pbi_lang=", null).ToLower() != "es") return false;
+                        pbiLangCmd = args[i].Replace("-pbi_lang=", null).ToLower();
+                        break;
                 }
             }
             return true;
@@ -312,7 +321,47 @@ namespace PowerRefresher
             }
             return fields += "]";
         }
-
+        
+        private void SetPbiControlStringsByLang(string lang)
+        {
+            switch (lang.ToLower())
+            {
+                case "es":
+                    REFRESH_BUTTON = "refreshQueries";
+                    REFRESH_DIALOG = "modalDialog";
+                    CANCEL_REFRESH_BUTTON = "Cerrar";
+                    SAVE_BUTTON = "save";
+                    SAVE_WAIT_MESSAGE = "En proceso";
+                    PUBLISH_BUTTON = "publish";
+                    PUBLISH_GROUP_DIALOG = "KoPublishToGroupDialog";
+                    PUBLISH_DIALOG = "KoPublishDialog";
+                    WORKSPACE_CONTAINER = "list";
+                    SELECT_BUTTON = "Seleccionar";
+                    REPLACE_DIALOG = "KoPublishWithImpactViewDialog";
+                    REPLACE_BUTTON = "Reemplazar";
+                    SUCCESS_PUBLISH = "Entendido";
+                    REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
+                    break;
+                case "en":
+                    REFRESH_BUTTON = "refreshQueries";
+                    REFRESH_DIALOG = "modalDialog";
+                    CANCEL_REFRESH_BUTTON = "Close";
+                    SAVE_BUTTON = "save";
+                    SAVE_WAIT_MESSAGE = "Working on it";
+                    PUBLISH_BUTTON = "publish";
+                    PUBLISH_GROUP_DIALOG = "KoPublishToGroupDialog";
+                    PUBLISH_DIALOG = "KoPublishDialog";
+                    WORKSPACE_CONTAINER = "list";
+                    SELECT_BUTTON = "Select";
+                    REPLACE_DIALOG = "KoPublishWithImpactViewDialog";
+                    REPLACE_BUTTON = "Replace";
+                    SUCCESS_PUBLISH = "Got it";
+                    REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
+                    break;
+                default:
+                    break;
+            }
+        }
         private void SetModelFieldsFromArgs()
         {
             string[] fieldsFromArgs = fieldsCmd.Replace("[", null).Replace("]", null).Split(',');
@@ -358,6 +407,9 @@ namespace PowerRefresher
         private void SetFormValues()
         {
             txtInput.Text = targetCmd;
+            englishAppLang.Checked = pbiLangCmd == "en";
+            spanishAppLang.Checked = pbiLangCmd == "es";
+            SetPbiControlStringsByLang(pbiLangCmd);
             numericTimeout.Value = timeoutCmd;
             chkRefreshAll.Checked = refreshModeCmd == "all";
             chkPublish.Checked = publishCmd;
@@ -383,7 +435,8 @@ namespace PowerRefresher
             commandLineScript += $"-publish={chkPublish.Checked} ";
             commandLineScript += $"-workspace=\"{(chkPublish.Checked ? txtWorkspace.Text : null)}\" ";
             commandLineScript += $"-closefile={chkCloseFileOnFinish.Checked} ";
-            commandLineScript += $"-closeapp={chkCloseAppOnFinish.Checked}";
+            commandLineScript += $"-closeapp={chkCloseAppOnFinish.Checked} ";
+            commandLineScript += $"-pbi_lang={(englishAppLang.Checked ? "en" : "es")}";
 
             SetTextToClipboard(commandLineScript);
             txtOutput.Text += "\n[INFO] Script was generated successfully and copied to clipboard.";
@@ -704,6 +757,7 @@ namespace PowerRefresher
                 throw new Exception("An error has occurred trying to invoke refresh button. " + e.Message + "\n");
             }
         }
+
         private void FetchFieldsFromModel()
         {
             txtOutput.Text += "\nFetching fields from PowerBI model... ";
@@ -726,7 +780,7 @@ namespace PowerRefresher
         private bool IsValidArgs()
         {
             string[] args = Environment.GetCommandLineArgs();
-            for (int i = 1; i < 8; i++)
+            for (int i = 1; i < 9; i++)
             {
                 switch (i)
                 {
@@ -753,6 +807,9 @@ namespace PowerRefresher
                         break;
                     case 8:
                         if (!args[i].Contains("closeapp")) return false;
+                        break;
+                    case 9:
+                        if (!args[i].Contains("pbi_lang")) return false;
                         break;
                 }
             }
