@@ -10,20 +10,22 @@ namespace PowerRefresher
 {
     public partial class frmMain : Form
     {
-        private const string REFRESH_BUTTON = "refreshQueries";
-        private const string REFRESH_DIALOG = "modalDialog";
-        private const string CANCEL_REFRESH_BUTTON = "Close";
-        private const string SAVE_BUTTON = "save";
-        private const string SAVE_WAIT_MESSAGE = "Working on it";
-        private const string PUBLISH_BUTTON = "publish";
-        private const string PUBLISH_GROUP_DIALOG = "KoPublishToGroupDialog";
-        private const string PUBLISH_DIALOG = "KoPublishDialog";
-        private const string WORKSPACE_CONTAINER = "list";
-        private const string SELECT_BUTTON = "Select";
-        private const string REPLACE_DIALOG = "KoPublishWithImpactViewDialog";
-        private const string REPLACE_BUTTON = "Replace";
-        private const string SUCCESS_PUBLISH = "Got it";
-        private const string REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
+        //Default Control Strings : English
+        private string REFRESH_BUTTON = "refreshQueries";
+        private string REFRESH_DIALOG = "modalDialog";
+        private string CANCEL_REFRESH_BUTTON = "Close";
+        private string SAVE_BUTTON = "save";
+        private string SAVE_WAIT_MESSAGE = "Working on it";
+        private string PUBLISH_BUTTON = "publish";
+        private string PUBLISH_GROUP_DIALOG = "KoPublishToGroupDialog";
+        private string PUBLISH_DIALOG = "KoPublishDialog";
+        private string WORKSPACE_CONTAINER = "list";
+        private string SELECT_BUTTON = "Select";
+        private string REPLACE_DIALOG = "KoPublishWithImpactViewDialog";
+        private string REPLACE_BUTTON = "Replace";
+        private string SUCCESS_PUBLISH = "Got it";
+        private string REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
+
 
         private AutomationElement desktop;
         private AutomationElement pbi;
@@ -212,6 +214,46 @@ namespace PowerRefresher
             } while (treeElementNode != null);
         }
 
+        private void GetControlStringsByLang(string lang) 
+        {
+            switch (lang.ToLower())
+            {
+                case "es":
+                    REFRESH_BUTTON = "refreshQueries";
+                    REFRESH_DIALOG = "modalDialog";
+                    CANCEL_REFRESH_BUTTON = "Cerrar";
+                    SAVE_BUTTON = "save";
+                    SAVE_WAIT_MESSAGE = "En proceso";
+                    PUBLISH_BUTTON = "publish";
+                    PUBLISH_GROUP_DIALOG = "KoPublishToGroupDialog";
+                    PUBLISH_DIALOG = "KoPublishDialog";
+                    WORKSPACE_CONTAINER = "list";
+                    SELECT_BUTTON = "Seleccionar";
+                    REPLACE_DIALOG = "KoPublishWithImpactViewDialog";
+                    REPLACE_BUTTON = "Reemplazar";
+                    SUCCESS_PUBLISH = "Entendido";
+                    REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
+                    break;
+                case "en":
+                    REFRESH_BUTTON = "refreshQueries";
+                    REFRESH_DIALOG = "modalDialog";
+                    CANCEL_REFRESH_BUTTON = "Close";
+                    SAVE_BUTTON = "save";
+                    SAVE_WAIT_MESSAGE = "Working on it";
+                    PUBLISH_BUTTON = "publish";
+                    PUBLISH_GROUP_DIALOG = "KoPublishToGroupDialog";
+                    PUBLISH_DIALOG = "KoPublishDialog";
+                    WORKSPACE_CONTAINER = "list";
+                    SELECT_BUTTON = "Select";
+                    REPLACE_DIALOG = "KoPublishWithImpactViewDialog";
+                    REPLACE_BUTTON = "Replace";
+                    SUCCESS_PUBLISH = "Got it";
+                    REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
+                    break;
+                default:
+                    break;
+            }
+        }
         private void GetTreeContainer()
         {
             do
