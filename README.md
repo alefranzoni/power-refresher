@@ -60,6 +60,7 @@
 
 ### Built With
 * [UI Automation](https://docs.microsoft.com/en-us/dotnet/framework/ui-automation/ui-automation-overview/)
+* [.NET Framework 4.8](https://dotnet.microsoft.com/en-us/download/dotnet-framework/net48/)
 
 <p align="right">(<a href="#top">↑ Top</a>)</p>
 
