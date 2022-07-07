@@ -50,6 +50,7 @@ namespace PowerRefresher
         private string targetCmd, refreshModeCmd, fieldsCmd, workspaceNameCmd, pbiLangCmd;
         private bool publishCmd, closeFileCmd, closeAppCmd, userArgsPassed;
         private int timeoutCmd;
+        private Stopwatch stopWatch;
 
         public frmMain() => InitializeComponent();
         private void frmMain_Load(object sender, EventArgs e)
@@ -90,6 +91,9 @@ namespace PowerRefresher
 
             try
             {
+                stopWatch = new Stopwatch();
+                stopWatch.Start();
+                
                 //Refresh
                 if (chkRefreshAll.Checked) RefreshAll(); else RefreshSelection();
                 if (!RefreshSuccess()) throw new Exception("Refresh failed. Please check refresh dialog for details and try again.");
@@ -108,7 +112,15 @@ namespace PowerRefresher
                 if (chkCloseFileOnFinish.Checked) CloseFile();
 
                 //Success
-                txtOutput.Text += "\n\n=== REFRESH FINISHED ===\nThanks for using PowerRefresher!\n";
+                stopWatch.Stop();
+                TimeSpan t = TimeSpan.FromMilliseconds(stopWatch.ElapsedMilliseconds);
+                string timeElapsed = string.Format("{0:D1} hours {1:D1} minutes {2:D1} secs",
+                            t.Hours,
+                            t.Minutes,
+                            t.Seconds);
+
+
+                txtOutput.Text += $"\n\n=== REFRESH FINISHED ===\nTime elapsed: {timeElapsed}\nThanks for using PowerRefresher!\n";
                 txtOutput.Text += "-\nPowerRefresher @ https://github.com/alefranzoni/power-refresher" +
                     "\nAlejandro Franzoni Gimenez @ https://alejandrofranzoni.com.ar \n";
 
@@ -120,6 +132,7 @@ namespace PowerRefresher
             }
             catch (Exception err)
             {
+                stopWatch.Stop();
                 RefreshFailed(err);
             }
         }
@@ -638,7 +651,7 @@ namespace PowerRefresher
             GetSelectionItemPattern();
             do
             {
-                pbi.SetFocus();
+                //pbi.SetFocus();
                 selectionItemPattern.Select();
                 selectionItemPattern.Select();
                 selectionItemPattern.Select();
