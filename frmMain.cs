@@ -13,6 +13,7 @@ namespace PowerRefresher
         //Default Control Strings : English
         private string REFRESH_BUTTON = "refreshQueries";
         private string REFRESH_DIALOG = "modalDialog";
+        private string SCRIPT_VISUAL_DIALOG = "MessageDialog";
         private string CANCEL_REFRESH_BUTTON = "Close";
         private string SAVE_BUTTON = "save";
         private string SAVE_WAIT_MESSAGE = "Working on it";
@@ -24,6 +25,7 @@ namespace PowerRefresher
         private string REPLACE_DIALOG = "KoPublishWithImpactViewDialog";
         private string REPLACE_BUTTON = "Replace";
         private string SUCCESS_PUBLISH = "Got it";
+        private string ENABLE_BUTTON = "Enable";
         private string REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
 
 
@@ -41,6 +43,8 @@ namespace PowerRefresher
         private AutomationElement targetWorkspaceElement;
         private AutomationElement replaceDatasetDialog;
         private AutomationElement refreshContextualMenu;
+        private AutomationElement enableScriptVisualsDialog;   
+        private AutomationElement enableScriptVisualsButton;   
 
         private WindowPattern windowPattern;
         private InvokePattern invokePattern;
@@ -269,6 +273,17 @@ namespace PowerRefresher
 
                 //Selecting field if needed
                 if (refreshModeCmd == "fields") SetModelFieldsFromArgs();
+
+                //Enable script visual if needed
+                checkScriptVisuals();
+
+                //do
+                //{
+                //    Thread.Sleep(500);
+                //    refreshDialog = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, REFRESH_DIALOG));
+                //    cancelRefreshButton = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.HelpTextProperty, CANCEL_REFRESH_BUTTON));
+                //} while (refreshDialog != null && cancelRefreshButton == null);
+
             }
             catch (Exception e)
             {
@@ -277,6 +292,34 @@ namespace PowerRefresher
                 ShowMessage("An unexpected error has occurred. Check the output for details.", MessageBoxIcon.Error, "Unexpected error");
             }
         }
+
+        private void checkScriptVisuals()
+        {
+            timeout = 0;
+            do
+            {
+                timeout += 1;
+                Thread.Sleep(1000);
+                enableScriptVisualsDialog = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, SCRIPT_VISUAL_DIALOG));
+            } while (enableScriptVisualsDialog == null || timeout < 5);
+            if (enableScriptVisualsDialog != null)
+            {
+                txtOutput.Text += "\nScript Visuals detected... ";
+                if (chkEnableScriptVisuals.Checked)
+                {
+                    enableScriptVisualsButton = enableScriptVisualsDialog.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, ENABLE_BUTTON));
+                    invokePattern = (InvokePattern)enableScriptVisualsButton.GetCurrentPattern(InvokePattern.Pattern);
+                    invokePattern.Invoke();
+
+                    txtOutput.Text += "Enabled! [DONE]";
+                }
+                else
+                {
+                    throw new Exception("Visual scripts detected in the file. The application is not authorized to enable them, the process will be aborted.");
+                }
+            }
+        }
+
         private bool GetAndStoreArguments()
         {
             string[] args = Environment.GetCommandLineArgs();
