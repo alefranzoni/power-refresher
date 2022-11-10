@@ -395,6 +395,8 @@ namespace PowerRefresher
                     REPLACE_BUTTON = "Reemplazar";
                     SUCCESS_PUBLISH = "Entendido";
                     REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
+                    SCRIPT_VISUAL_DIALOG = "MessageDialog";
+                    ENABLE_BUTTON = "Habilitar";
                     break;
                 case "en":
                     REFRESH_BUTTON = "refreshQueries";
@@ -411,6 +413,8 @@ namespace PowerRefresher
                     REPLACE_BUTTON = "Replace";
                     SUCCESS_PUBLISH = "Got it";
                     REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
+                    SCRIPT_VISUAL_DIALOG = "MessageDialog";
+                    ENABLE_BUTTON = "Enable";
                     break;
                 default:
                     break;
