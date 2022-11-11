@@ -77,6 +77,7 @@ Simply, you have to execute the program and set all the options shown in the use
   * Language: *Choose your Power BI Desktop application language* <br><br><img src="images/input.png" alt="input" >
 - **Options**
   * Refresh all: *Check to refresh all the queries/tables/fields present on the model. If uncheck this option, you have to select which fields want to be updated from the below list.*
+  * Enable Script Visuals: *Check to allow the application to enable script visuals automatically, if they exist in the file. Only enable script visuals if you trust the author and source.*
   * Publish: *Check to publish your file into a workspace after it has been updated. You must put the target workspace name in the box next to the checkbox control.* 
   * Close file on finish: *Check to close `*.pbix` file on process finish*
   * Close application on finish: *Check to close `PowerRefresher` on process finish. If this option is enabled, when the application is closed, a log file will be created and shown with all the update details* <br><br><img src="images/options_gui.png" alt="options">
@@ -92,23 +93,24 @@ Simply, you have to execute the program and set all the options shown in the use
 Run the **PowerRefresher** application by passing the following arguments:
 
 ```batchfile
--target=path -timeout=180 -refresh_mode=all/fields -fields="[field1,fieldN]" -publish=bool -workspace=name -closefile=bool -closeapp=bool -pbi_lang=en/es
+-target=path -timeout=180 -refresh_mode=all/fields -fields="[field1,fieldN]" -publish=bool -workspace=name -enable_script_visuals=bool -closefile=bool -closeapp=bool -pbi_lang=en/es
 ```
-| Command      | Description                                    |
-|--------------|------------------------------------------------|
-|`target`      |Full pbix file path                             |
-|`timeout`     |Waiting timeout in seconds (max. 600)           |
-|`refresh_mode`|Refresh mode, all or selected fields            |
-|`fields`      |Fields to update                                |
-|`publish`     |True if you want to publish file                |
-|`workspace`   |Target workspace name (to publish into)         |
-|`closefile`   |True if you want to close file on finish        |
-|`closeapp`    |True if you want to close app on finish         |
-|`pbi_lang`    |For English use **en**, for Spanish use **es**  |
+| Command                   | Description                                         |
+|---------------------------|-----------------------------------------------------|
+|`target`                   |Full pbix file path                                  |
+|`timeout`                  |Waiting timeout in seconds (max. 600)                |
+|`refresh_mode`             |Refresh mode, all or selected fields                 |
+|`fields`                   |Fields to update                                     |
+|`publish`                  |True if you want to publish file                     |
+|`workspace`                |Target workspace name (to publish into)              |
+|`enable_script_visuals`    |Allow the app to enable script visuals automatically |
+|`closefile`                |True if you want to close file on finish             |
+|`closeapp`                 |True if you want to close app on finish              |
+|`pbi_lang`                 |For English use **en**, for Spanish use **es**       |
 
 #### Example
 ```batchfile
--target="C:\Users\MyUser\Desktop\My File.pbix" -timeout=180 -refresh_mode=fields -fields="[Table1,Table2]" -publish=true -workspace="My workspace" -closefile=true -closeapp=true -pbi_lang=en
+-target="C:\Users\MyUser\Desktop\My File.pbix" -timeout=180 -refresh_mode=fields -fields="[Table1,Table2]" -publish=true -workspace="My workspace" -enable_script_visuals=false -closefile=true -closeapp=true -pbi_lang=en
 ```
 
 > **Note**: *Remember that you can generate the script from the* `Generate Script` *button.*
