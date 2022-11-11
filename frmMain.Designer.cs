@@ -33,6 +33,9 @@ namespace PowerRefresher
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMain));
             this.lblTitle = new System.Windows.Forms.Label();
             this.gbInput = new System.Windows.Forms.GroupBox();
+            this.spanishAppLang = new System.Windows.Forms.RadioButton();
+            this.englishAppLang = new System.Windows.Forms.RadioButton();
+            this.pbiLangLabel = new System.Windows.Forms.Label();
             this.numericTimeout = new System.Windows.Forms.NumericUpDown();
             this.lblTimeout = new System.Windows.Forms.Label();
             this.cmdSetInput = new System.Windows.Forms.Button();
@@ -57,9 +60,7 @@ namespace PowerRefresher
             this.cmdStartRefresh = new System.Windows.Forms.Button();
             this.helpToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.cmdGenerateScript = new System.Windows.Forms.Button();
-            this.pbiLangLabel = new System.Windows.Forms.Label();
-            this.englishAppLang = new System.Windows.Forms.RadioButton();
-            this.spanishAppLang = new System.Windows.Forms.RadioButton();
+            this.chkEnableScriptVisuals = new System.Windows.Forms.CheckBox();
             this.gbInput.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericTimeout)).BeginInit();
             this.gbOptions.SuspendLayout();
@@ -94,6 +95,39 @@ namespace PowerRefresher
             this.gbInput.TabIndex = 1;
             this.gbInput.TabStop = false;
             this.gbInput.Text = "Input";
+            // 
+            // spanishAppLang
+            // 
+            this.spanishAppLang.AutoSize = true;
+            this.spanishAppLang.Location = new System.Drawing.Point(247, 54);
+            this.spanishAppLang.Name = "spanishAppLang";
+            this.spanishAppLang.Size = new System.Drawing.Size(66, 17);
+            this.spanishAppLang.TabIndex = 4;
+            this.spanishAppLang.Text = "Spanish";
+            this.spanishAppLang.UseVisualStyleBackColor = true;
+            this.spanishAppLang.CheckedChanged += new System.EventHandler(this.spanishAppLang_CheckedChanged);
+            // 
+            // englishAppLang
+            // 
+            this.englishAppLang.AutoSize = true;
+            this.englishAppLang.Checked = true;
+            this.englishAppLang.Location = new System.Drawing.Point(182, 54);
+            this.englishAppLang.Name = "englishAppLang";
+            this.englishAppLang.Size = new System.Drawing.Size(63, 17);
+            this.englishAppLang.TabIndex = 4;
+            this.englishAppLang.TabStop = true;
+            this.englishAppLang.Text = "English";
+            this.englishAppLang.UseVisualStyleBackColor = true;
+            this.englishAppLang.CheckedChanged += new System.EventHandler(this.englishAppLang_CheckedChanged);
+            // 
+            // pbiLangLabel
+            // 
+            this.pbiLangLabel.AutoSize = true;
+            this.pbiLangLabel.Location = new System.Drawing.Point(7, 56);
+            this.pbiLangLabel.Name = "pbiLangLabel";
+            this.pbiLangLabel.Size = new System.Drawing.Size(169, 13);
+            this.pbiLangLabel.TabIndex = 3;
+            this.pbiLangLabel.Text = "PowerBI Applicaction Language";
             // 
             // numericTimeout
             // 
@@ -159,6 +193,7 @@ namespace PowerRefresher
             this.gbOptions.Controls.Add(this.lblModelFields);
             this.gbOptions.Controls.Add(this.chkCloseFileOnFinish);
             this.gbOptions.Controls.Add(this.chkPublish);
+            this.gbOptions.Controls.Add(this.chkEnableScriptVisuals);
             this.gbOptions.Controls.Add(this.chkRefreshAll);
             this.gbOptions.Location = new System.Drawing.Point(12, 139);
             this.gbOptions.Name = "gbOptions";
@@ -364,38 +399,16 @@ namespace PowerRefresher
             this.cmdGenerateScript.UseVisualStyleBackColor = true;
             this.cmdGenerateScript.Click += new System.EventHandler(this.cmdGenerateScript_Click);
             // 
-            // pbiLangLabel
+            // chkEnableScriptVisuals
             // 
-            this.pbiLangLabel.AutoSize = true;
-            this.pbiLangLabel.Location = new System.Drawing.Point(7, 56);
-            this.pbiLangLabel.Name = "pbiLangLabel";
-            this.pbiLangLabel.Size = new System.Drawing.Size(169, 13);
-            this.pbiLangLabel.TabIndex = 3;
-            this.pbiLangLabel.Text = "PowerBI Applicaction Language";
-            // 
-            // englishAppLang
-            // 
-            this.englishAppLang.AutoSize = true;
-            this.englishAppLang.Checked = true;
-            this.englishAppLang.Location = new System.Drawing.Point(182, 54);
-            this.englishAppLang.Name = "englishAppLang";
-            this.englishAppLang.Size = new System.Drawing.Size(63, 17);
-            this.englishAppLang.TabIndex = 4;
-            this.englishAppLang.TabStop = true;
-            this.englishAppLang.Text = "English";
-            this.englishAppLang.UseVisualStyleBackColor = true;
-            this.englishAppLang.CheckedChanged += new System.EventHandler(this.englishAppLang_CheckedChanged);
-            // 
-            // spanishAppLang
-            // 
-            this.spanishAppLang.AutoSize = true;
-            this.spanishAppLang.Location = new System.Drawing.Point(247, 54);
-            this.spanishAppLang.Name = "spanishAppLang";
-            this.spanishAppLang.Size = new System.Drawing.Size(66, 17);
-            this.spanishAppLang.TabIndex = 4;
-            this.spanishAppLang.Text = "Spanish";
-            this.spanishAppLang.UseVisualStyleBackColor = true;
-            this.spanishAppLang.CheckedChanged += new System.EventHandler(this.spanishAppLang_CheckedChanged);
+            this.chkEnableScriptVisuals.AutoSize = true;
+            this.chkEnableScriptVisuals.Location = new System.Drawing.Point(96, 22);
+            this.chkEnableScriptVisuals.Name = "chkEnableScriptVisuals";
+            this.chkEnableScriptVisuals.Size = new System.Drawing.Size(132, 17);
+            this.chkEnableScriptVisuals.TabIndex = 0;
+            this.chkEnableScriptVisuals.Text = "Enable Script Visuals";
+            this.helpToolTip.SetToolTip(this.chkEnableScriptVisuals, "Only enable script visuals if you trust the author and source.");
+            this.chkEnableScriptVisuals.UseVisualStyleBackColor = true;
             // 
             // frmMain
             // 
@@ -462,6 +475,7 @@ namespace PowerRefresher
         private System.Windows.Forms.RadioButton spanishAppLang;
         private System.Windows.Forms.RadioButton englishAppLang;
         private System.Windows.Forms.Label pbiLangLabel;
+        private System.Windows.Forms.CheckBox chkEnableScriptVisuals;
     }
 }
 
