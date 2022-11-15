@@ -305,7 +305,7 @@ namespace PowerRefresher
                 timeout += 1;
                 Thread.Sleep(1000);
                 enableScriptVisualsDialog = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, SCRIPT_VISUAL_DIALOG));
-            } while (enableScriptVisualsDialog == null || timeout < 5);
+            } while (enableScriptVisualsDialog == null && timeout < 4);
             if (enableScriptVisualsDialog != null)
             {
                 txtOutput.Text += "\nScript Visuals detected... ";
