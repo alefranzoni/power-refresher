@@ -8,6 +8,7 @@
 [![Contributors][contributors-shield]][contributors-url]
 [![LinkedIn][linkedin-shield]][linkedin-url]
 [![Twitter][twitter-shield]][twitter-url]
+[![Donate][donate-shield]][donate-url]
 
 <!-- LOGO/HEADER -->
 <br />
@@ -135,6 +136,15 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 contacto@alejandrofranzoni.com.ar <br><br>
 <p align="right">(<a href="#top">↑ Top</a>)</p>
 
+<!-- DONATE -->
+## Donate
+You can support me through **Cafecito** (🇦🇷) or **PayPal** (Worldwide). Thank you ❤️
+<br/><br/>
+[![Invitame un café en cafecito.app](https://cdn.cafecito.app/imgs/buttons/button_3.svg)](https://cafecito.app/alefranzoni)
+<br/>
+<a href="https://www.paypal.com/donate/?hosted_button_id=9LR86UDHEKM3Q" target="_blank"><img src="https://raw.githubusercontent.com/stefan-niedermann/paypal-donate-button/master/paypal-donate-button.png" alt="Donate with PayPal" width="180"></a>
+<p align="right">(<a href="#top">↑ Top</a>)</p>
+
 <!-- MD LINKS & IMAGES -->
 [contributors-shield]: https://img.shields.io/github/contributors/alefranzoni/power-refresher
 [contributors-url]: https://github.com/alefranzoni/power-refresher/graphs/contributors
@@ -152,3 +162,6 @@ contacto@alejandrofranzoni.com.ar <br><br>
 [twitter-url]: https://twitter.com/AleFranzoniDGK
 [instagram-shield]: https://img.shields.io/badge/-Instagram-blue.svg?logo=instagram&logoColor=white
 [instagram-url]: https://www.instagram.com/alefranzoni/
+[donate-shield]: https://img.shields.io/badge/$-donate-ff69b4.svg?maxAge=2592000&amp;style=flat
+[donate-url]: https://github.com/alefranzoni/power-refresher#donate
+
