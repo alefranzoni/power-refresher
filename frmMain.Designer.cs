@@ -41,6 +41,9 @@ namespace PowerRefresher
             this.cmdSetInput = new System.Windows.Forms.Button();
             this.txtInput = new System.Windows.Forms.TextBox();
             this.gbOptions = new System.Windows.Forms.GroupBox();
+            this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.chkEnableScriptVisuals = new System.Windows.Forms.CheckBox();
+            this.chkContinueRefresh = new System.Windows.Forms.CheckBox();
             this.txtWorkspace = new System.Windows.Forms.TextBox();
             this.chkCloseAppOnFinish = new System.Windows.Forms.CheckBox();
             this.lblWorkspace = new System.Windows.Forms.Label();
@@ -51,7 +54,6 @@ namespace PowerRefresher
             this.lblModelFields = new System.Windows.Forms.Label();
             this.chkCloseFileOnFinish = new System.Windows.Forms.CheckBox();
             this.chkPublish = new System.Windows.Forms.CheckBox();
-            this.chkEnableScriptVisuals = new System.Windows.Forms.CheckBox();
             this.chkRefreshAll = new System.Windows.Forms.CheckBox();
             this.grOutput = new System.Windows.Forms.GroupBox();
             this.txtOutput = new System.Windows.Forms.RichTextBox();
@@ -61,15 +63,13 @@ namespace PowerRefresher
             this.cmdStartRefresh = new System.Windows.Forms.Button();
             this.helpToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.cmdGenerateScript = new System.Windows.Forms.Button();
-            this.chkContinueRefresh = new System.Windows.Forms.CheckBox();
-            this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.gbInput.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericTimeout)).BeginInit();
             this.gbOptions.SuspendLayout();
+            this.groupBox1.SuspendLayout();
             this.modelFieldsContextMenu.SuspendLayout();
             this.grOutput.SuspendLayout();
             this.richTextBoxContextMenu.SuspendLayout();
-            this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
             // lblTitle
@@ -205,6 +205,40 @@ namespace PowerRefresher
             this.gbOptions.TabStop = false;
             this.gbOptions.Text = "Options";
             // 
+            // groupBox1
+            // 
+            this.groupBox1.Controls.Add(this.chkEnableScriptVisuals);
+            this.groupBox1.Controls.Add(this.chkContinueRefresh);
+            this.groupBox1.Location = new System.Drawing.Point(111, 13);
+            this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Size = new System.Drawing.Size(202, 47);
+            this.groupBox1.TabIndex = 6;
+            this.groupBox1.TabStop = false;
+            this.groupBox1.Text = "Script Visuals";
+            // 
+            // chkEnableScriptVisuals
+            // 
+            this.chkEnableScriptVisuals.AutoSize = true;
+            this.chkEnableScriptVisuals.Location = new System.Drawing.Point(11, 20);
+            this.chkEnableScriptVisuals.Name = "chkEnableScriptVisuals";
+            this.chkEnableScriptVisuals.Size = new System.Drawing.Size(61, 17);
+            this.chkEnableScriptVisuals.TabIndex = 0;
+            this.chkEnableScriptVisuals.Text = "Enable";
+            this.helpToolTip.SetToolTip(this.chkEnableScriptVisuals, "Only enable script visuals if you trust the author and source.");
+            this.chkEnableScriptVisuals.UseVisualStyleBackColor = true;
+            this.chkEnableScriptVisuals.CheckedChanged += new System.EventHandler(this.chkEnableScriptVisuals_CheckedChanged);
+            // 
+            // chkContinueRefresh
+            // 
+            this.chkContinueRefresh.AutoSize = true;
+            this.chkContinueRefresh.Location = new System.Drawing.Point(81, 20);
+            this.chkContinueRefresh.Name = "chkContinueRefresh";
+            this.chkContinueRefresh.Size = new System.Drawing.Size(113, 17);
+            this.chkContinueRefresh.TabIndex = 5;
+            this.chkContinueRefresh.Text = "Continue refresh";
+            this.helpToolTip.SetToolTip(this.chkContinueRefresh, "Continue with refresh process even if script visuals were disabled.");
+            this.chkContinueRefresh.UseVisualStyleBackColor = true;
+            // 
             // txtWorkspace
             // 
             this.txtWorkspace.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Italic);
@@ -313,18 +347,6 @@ namespace PowerRefresher
             this.chkPublish.UseVisualStyleBackColor = true;
             this.chkPublish.CheckedChanged += new System.EventHandler(this.chkPublish_CheckedChanged);
             // 
-            // chkEnableScriptVisuals
-            // 
-            this.chkEnableScriptVisuals.AutoSize = true;
-            this.chkEnableScriptVisuals.Location = new System.Drawing.Point(11, 20);
-            this.chkEnableScriptVisuals.Name = "chkEnableScriptVisuals";
-            this.chkEnableScriptVisuals.Size = new System.Drawing.Size(61, 17);
-            this.chkEnableScriptVisuals.TabIndex = 0;
-            this.chkEnableScriptVisuals.Text = "Enable";
-            this.helpToolTip.SetToolTip(this.chkEnableScriptVisuals, "Only enable script visuals if you trust the author and source.");
-            this.chkEnableScriptVisuals.UseVisualStyleBackColor = true;
-            this.chkEnableScriptVisuals.CheckedChanged += new System.EventHandler(this.chkEnableScriptVisuals_CheckedChanged);
-            // 
             // chkRefreshAll
             // 
             this.chkRefreshAll.AutoSize = true;
@@ -414,28 +436,6 @@ namespace PowerRefresher
             this.cmdGenerateScript.UseVisualStyleBackColor = true;
             this.cmdGenerateScript.Click += new System.EventHandler(this.cmdGenerateScript_Click);
             // 
-            // chkContinueRefresh
-            // 
-            this.chkContinueRefresh.AutoSize = true;
-            this.chkContinueRefresh.Location = new System.Drawing.Point(81, 20);
-            this.chkContinueRefresh.Name = "chkContinueRefresh";
-            this.chkContinueRefresh.Size = new System.Drawing.Size(113, 17);
-            this.chkContinueRefresh.TabIndex = 5;
-            this.chkContinueRefresh.Text = "Continue refresh";
-            this.helpToolTip.SetToolTip(this.chkContinueRefresh, "Continue with the refresh process even if script visuals were disabled.");
-            this.chkContinueRefresh.UseVisualStyleBackColor = true;
-            // 
-            // groupBox1
-            // 
-            this.groupBox1.Controls.Add(this.chkEnableScriptVisuals);
-            this.groupBox1.Controls.Add(this.chkContinueRefresh);
-            this.groupBox1.Location = new System.Drawing.Point(111, 13);
-            this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(202, 47);
-            this.groupBox1.TabIndex = 6;
-            this.groupBox1.TabStop = false;
-            this.groupBox1.Text = "Script Visuals";
-            // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -462,11 +462,11 @@ namespace PowerRefresher
             ((System.ComponentModel.ISupportInitialize)(this.numericTimeout)).EndInit();
             this.gbOptions.ResumeLayout(false);
             this.gbOptions.PerformLayout();
+            this.groupBox1.ResumeLayout(false);
+            this.groupBox1.PerformLayout();
             this.modelFieldsContextMenu.ResumeLayout(false);
             this.grOutput.ResumeLayout(false);
             this.richTextBoxContextMenu.ResumeLayout(false);
-            this.groupBox1.ResumeLayout(false);
-            this.groupBox1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
