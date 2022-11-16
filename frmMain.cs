@@ -13,8 +13,8 @@ namespace PowerRefresher
         //Default Control Strings : English
         private string REFRESH_BUTTON = "refreshQueries";
         private string REFRESH_DIALOG = "modalDialog";
-        private string SCRIPT_VISUAL_DIALOG = "MessageDialog";
         private string CANCEL_REFRESH_BUTTON = "Close";
+        private string REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
         private string SAVE_BUTTON = "save";
         private string SAVE_WAIT_MESSAGE = "Working on it";
         private string PUBLISH_BUTTON = "publish";
@@ -25,8 +25,9 @@ namespace PowerRefresher
         private string REPLACE_DIALOG = "KoPublishWithImpactViewDialog";
         private string REPLACE_BUTTON = "Replace";
         private string SUCCESS_PUBLISH = "Got it";
-        private string ENABLE_BUTTON = "Enable";
-        private string REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
+        private string SCRIPT_VISUALS_DIALOG = "MessageDialog";
+        private string ENABLE_SCRIPT_VISUALS_BUTTON = "Enable";
+        private string CANCEL_SCRIPT_VISUALS_BUTTON = "Cancel";
 
 
         private AutomationElement desktop;
@@ -45,6 +46,7 @@ namespace PowerRefresher
         private AutomationElement refreshContextualMenu;
         private AutomationElement enableScriptVisualsDialog;   
         private AutomationElement enableScriptVisualsButton;   
+        private AutomationElement cancelScriptVisualsButton;
 
         private WindowPattern windowPattern;
         private InvokePattern invokePattern;
@@ -52,7 +54,7 @@ namespace PowerRefresher
 
         private int timeout;
         private string targetCmd, refreshModeCmd, fieldsCmd, workspaceNameCmd, pbiLangCmd;
-        private bool enableScriptVisualsCmd, publishCmd, closeFileCmd, closeAppCmd, userArgsPassed;
+        private bool enableScriptVisualsCmd, continueRefreshCmd, publishCmd, closeFileCmd, closeAppCmd, userArgsPassed;
         private int timeoutCmd;
         private Stopwatch stopWatch;
 
@@ -65,7 +67,7 @@ namespace PowerRefresher
 
             if (args.Length == 1) return;
 
-            if ((args.Length < 11 && args.Length > 1) || (args.Length > 11 && args.Length > 1) || args[1].Contains("help") || !IsValidArgs() || !GetAndStoreArguments())
+            if ((args.Length < 12 && args.Length > 1) || (args.Length > 12 && args.Length > 1) || args[1].Contains("help") || !IsValidArgs() || !GetAndStoreArguments())
             {
                 ShowMessage(Properties.Resources.helpMessage, MessageBoxIcon.Information);
                 return;
@@ -292,7 +294,6 @@ namespace PowerRefresher
             {
                 txtOutput.Text += "[FAILED]\nAn unexpected error has occurred: " + e.Message;
                 SetOutputLineColor(txtOutput.Lines.Length - 1, Color.Red);
-                ShowMessage("An unexpected error has occurred. Check the output for details.", MessageBoxIcon.Error, "Unexpected error");
                 return false;
             }
         }
@@ -304,30 +305,40 @@ namespace PowerRefresher
             {
                 timeout += 1;
                 Thread.Sleep(1000);
-                enableScriptVisualsDialog = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, SCRIPT_VISUAL_DIALOG));
-            } while (enableScriptVisualsDialog == null || timeout < 5);
+                enableScriptVisualsDialog = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, SCRIPT_VISUALS_DIALOG));
+            } while (enableScriptVisualsDialog == null && timeout < 4);
+
             if (enableScriptVisualsDialog != null)
             {
                 txtOutput.Text += "\nScript Visuals detected... ";
+
                 if (chkEnableScriptVisuals.Checked)
                 {
-                    enableScriptVisualsButton = enableScriptVisualsDialog.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, ENABLE_BUTTON));
+                    enableScriptVisualsButton = enableScriptVisualsDialog.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, ENABLE_SCRIPT_VISUALS_BUTTON));
                     invokePattern = (InvokePattern)enableScriptVisualsButton.GetCurrentPattern(InvokePattern.Pattern);
                     invokePattern.Invoke();
 
                     txtOutput.Text += "Enabled! [DONE]";
-                }
-                else
-                {
-                    throw new Exception("Visual scripts detected in the file. The application is not authorized to enable them, the process will be aborted.");
+                } else {
+                    if (!chkContinueRefresh.Checked)
+                    {
+                        throw new Exception("Visual scripts detected in the file. The application is not authorized to enable them, the process will be aborted.");
+                    } else
+                    {
+                        cancelScriptVisualsButton = enableScriptVisualsDialog.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, CANCEL_SCRIPT_VISUALS_BUTTON));
+                        invokePattern = (InvokePattern)cancelScriptVisualsButton.GetCurrentPattern(InvokePattern.Pattern);
+                        invokePattern.Invoke();
+                        txtOutput.Text += "Disabled [DONE]";
+                    }
                 }
             }
+
         }
 
         private bool GetAndStoreArguments()
         {
             string[] args = Environment.GetCommandLineArgs();
-            for (int i = 1; i <= 10; i++)
+            for (int i = 1; i <= 11; i++)
             {
                 switch (i)
                 {
@@ -359,14 +370,18 @@ namespace PowerRefresher
                         enableScriptVisualsCmd = args[i].Replace("-enable_script_visuals=", null).ToLower() == "true";
                         break;
                     case 8:
+                        if (args[i].Replace("-sv_force_refresh=", null).ToLower() != "false" && args[i].Replace("-sv_force_refresh=", null).ToLower() != "true") return false;
+                        continueRefreshCmd = args[i].Replace("-sv_force_refresh=", null).ToLower() == "true";
+                        break;
+                    case 9:
                         if (args[i].Replace("-closefile=", null).ToLower() != "false" && args[i].Replace("-closefile=", null).ToLower() != "true") return false;
                         closeFileCmd = args[i].Replace("-closefile=", null).ToLower() == "true";
                         break;
-                    case 9:
+                    case 10:
                         if (args[i].Replace("-closeapp=", null).ToLower() != "false" && args[i].Replace("-closeapp=", null).ToLower() != "true") return false;
                         closeAppCmd = args[i].Replace("-closeapp=", null).ToLower() == "true";
                         break;
-                    case 10:
+                    case 11:
                         if (args[i].Replace("-pbi_lang=", null).ToLower() != "en" && args[i].Replace("-pbi_lang=", null).ToLower() != "es") return false;
                         pbiLangCmd = args[i].Replace("-pbi_lang=", null).ToLower();
                         break;
@@ -403,8 +418,9 @@ namespace PowerRefresher
                     REPLACE_BUTTON = "Reemplazar";
                     SUCCESS_PUBLISH = "Entendido";
                     REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
-                    SCRIPT_VISUAL_DIALOG = "MessageDialog";
-                    ENABLE_BUTTON = "Habilitar";
+                    SCRIPT_VISUALS_DIALOG = "MessageDialog";
+                    ENABLE_SCRIPT_VISUALS_BUTTON = "Habilitar";
+                    CANCEL_SCRIPT_VISUALS_BUTTON = "Cancelar";
                     break;
                 case "en":
                     REFRESH_BUTTON = "refreshQueries";
@@ -421,8 +437,9 @@ namespace PowerRefresher
                     REPLACE_BUTTON = "Replace";
                     SUCCESS_PUBLISH = "Got it";
                     REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
-                    SCRIPT_VISUAL_DIALOG = "MessageDialog";
-                    ENABLE_BUTTON = "Enable";
+                    SCRIPT_VISUALS_DIALOG = "MessageDialog";
+                    ENABLE_SCRIPT_VISUALS_BUTTON = "Enable";
+                    CANCEL_SCRIPT_VISUALS_BUTTON = "Cancel";
                     break;
                 default:
                     break;
@@ -479,6 +496,7 @@ namespace PowerRefresher
             numericTimeout.Value = timeoutCmd;
             chkRefreshAll.Checked = refreshModeCmd == "all";
             chkEnableScriptVisuals.Checked = enableScriptVisualsCmd;
+            chkContinueRefresh.Checked = continueRefreshCmd;
             chkPublish.Checked = publishCmd;
             if (publishCmd) txtWorkspace.Text = workspaceNameCmd;
             chkCloseFileOnFinish.Checked = closeFileCmd;
@@ -502,6 +520,7 @@ namespace PowerRefresher
             commandLineScript += $"-publish={chkPublish.Checked} ";
             commandLineScript += $"-workspace=\"{(chkPublish.Checked ? txtWorkspace.Text : null)}\" ";
             commandLineScript += $"-enable_script_visuals={chkEnableScriptVisuals.Checked} ";
+            commandLineScript += $"-sv_force_refresh={chkContinueRefresh.Checked} ";
             commandLineScript += $"-closefile={chkCloseFileOnFinish.Checked} ";
             commandLineScript += $"-closeapp={chkCloseAppOnFinish.Checked} ";
             commandLineScript += $"-pbi_lang={(englishAppLang.Checked ? "en" : "es")}";
@@ -787,6 +806,12 @@ namespace PowerRefresher
             } while (refreshDialog != null && cancelRefreshButton == null);
             txtOutput.Text += "[DONE]";
         }
+
+        private void chkEnableScriptVisuals_CheckedChanged(object sender, EventArgs e)
+        {
+            chkContinueRefresh.Enabled = !chkEnableScriptVisuals.Checked;
+        }
+
         private void LookForRefreshDialog()
         {
             try
@@ -851,7 +876,7 @@ namespace PowerRefresher
         private bool IsValidArgs()
         {
             string[] args = Environment.GetCommandLineArgs();
-            for (int i = 1; i < 10; i++)
+            for (int i = 1; i < 11; i++)
             {
                 switch (i)
                 {
@@ -877,12 +902,15 @@ namespace PowerRefresher
                         if (!args[i].Contains("enable_script_visuals")) return false;
                         break;
                     case 8:
-                        if (!args[i].Contains("closefile")) return false;
+                        if (!args[i].Contains("sv_force_refresh")) return false;
                         break;
                     case 9:
-                        if (!args[i].Contains("closeapp")) return false;
+                        if (!args[i].Contains("closefile")) return false;
                         break;
                     case 10:
+                        if (!args[i].Contains("closeapp")) return false;
+                        break;
+                    case 11:
                         if (!args[i].Contains("pbi_lang")) return false;
                         break;
                 }
