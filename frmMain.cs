@@ -294,7 +294,6 @@ namespace PowerRefresher
             {
                 txtOutput.Text += "[FAILED]\nAn unexpected error has occurred: " + e.Message;
                 SetOutputLineColor(txtOutput.Lines.Length - 1, Color.Red);
-                ShowMessage("An unexpected error has occurred. Check the output for details.", MessageBoxIcon.Error, "Unexpected error");
                 return false;
             }
         }

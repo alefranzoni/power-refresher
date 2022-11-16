@@ -236,7 +236,7 @@ namespace PowerRefresher
             this.chkContinueRefresh.Size = new System.Drawing.Size(113, 17);
             this.chkContinueRefresh.TabIndex = 5;
             this.chkContinueRefresh.Text = "Continue refresh";
-            this.helpToolTip.SetToolTip(this.chkContinueRefresh, "Continue with refresh process even if script visuals were disabled.");
+            this.helpToolTip.SetToolTip(this.chkContinueRefresh, "Continues with refresh process even if script visuals were disabled.");
             this.chkContinueRefresh.UseVisualStyleBackColor = true;
             // 
             // txtWorkspace
