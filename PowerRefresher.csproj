@@ -25,7 +25,7 @@
     <MapFileExtensions>true</MapFileExtensions>
     <AutorunEnabled>true</AutorunEnabled>
     <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>2.0.0.%2a</ApplicationVersion>
+    <ApplicationVersion>2.1.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -51,6 +51,8 @@
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject>PowerRefresher.Program</StartupObject>
+    <!-- 64-bit on 64-bit Windows so the log can show the (64-bit) Power BI version -->
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>PowerRefresher.ico</ApplicationIcon>
@@ -93,6 +95,8 @@
     <Reference Include="UIAutomationTypes" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Engine\HangWatchdog.cs" />
+    <Compile Include="Engine\Logging.cs" />
     <Compile Include="Engine\PbiRefresher.cs" />
     <Compile Include="Engine\PbiStrings.cs" />
     <Compile Include="Engine\RefreshOptions.cs" />

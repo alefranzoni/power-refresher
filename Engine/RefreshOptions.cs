@@ -46,6 +46,12 @@ namespace PowerRefresher.Engine
         public RefreshFailedException(string message) : base(message) { }
     }
 
+    /// <summary>Power BI stopped answering UI Automation requests (it is hung or frozen).</summary>
+    public sealed class PowerBIUnresponsiveException : Exception
+    {
+        public PowerBIUnresponsiveException(string message, Exception inner = null) : base(message, inner) { }
+    }
+
     /// <summary>The Power BI UI did not look or behave as expected (element missing, timeout, bad input).</summary>
     public sealed class AutomationException : Exception
     {

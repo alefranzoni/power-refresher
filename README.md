@@ -107,21 +107,45 @@ PowerRefresherCli <file.pbix> [options]
 |`--keep-open`                 |Leave the file open when done (default: close it)                           |
 |`--lang <en\|es>`             |Power BI Desktop UI language (default `en`)                                  |
 |`--list-tables`               |Print the model's table names and exit                                       |
+|`--diagnose`                  |Check every Power BI UI element the tool relies on, without refreshing or saving |
+|`--log <path>`                |Append a detailed, timestamped log to this file; if it's a folder, one file per run |
+|`--hang-timeout <seconds>`    |Kill Power BI if its window stops responding this long (default 300, 0 = off) |
+|`--max-runtime <minutes>`     |Kill Power BI and stop if the whole run takes longer (default 360, 0 = off) |
+|`--retries <n>`               |After a hang or automation error, kill Power BI and try again up to n times (default 0) |
+|`-v`, `--verbose`             |Also show debug detail on the console (the log file always has it)          |
 |`-q`, `--quiet`               |Print errors only                                                            |
 
 | Exit code | Meaning                                                              |
 |-----------|----------------------------------------------------------------------|
 | `0`       | Success                                                              |
 | `1`       | Bad arguments (unknown option, missing file, table not in model)      |
-| `2`       | Power BI reported that the refresh failed                            |
-| `3`       | Automation error (timeout, UI element not found, publish failed)     |
+| `2`       | Power BI reported that the refresh failed (its error text is logged) |
+| `3`       | Automation error (UI element not found, publish failed); for `--diagnose`, an element is missing |
+| `4`       | Power BI hung or the run exceeded `--max-runtime`; Power BI was killed |
 
 #### Examples
 ```batchfile
-PowerRefresherCli "C:\Reports\Sales.pbix"
-PowerRefresherCli "C:\Reports\Sales.pbix" --table Orders --table Customers
+PowerRefresherCli "C:\Reports\Sales.pbix" --log "C:\Logs\"
+PowerRefresherCli "C:\Reports\Sales.pbix" --table Orders --table Customers --retries 1
 PowerRefresherCli "C:\Reports\Sales.pbix" --publish "Finance Reports" --timeout 600
+PowerRefresherCli "C:\Reports\Sales.pbix" --diagnose
 ```
+
+#### Logs
+Every line has a date, time and level, and every step records how long it took:
+```
+2026-11-18 16:50:10.984  INFO   PowerRefresherCli 2.1.0 started: refresh all tables
+2026-11-18 16:50:10.985  INFO   File: C:\Reports\Sales.pbix (26.4 KB, last modified 2026-11-18 16:50:08)
+2026-11-18 16:50:19.233  INFO   Found Power BI window after 8.2s (pid 27680, Power BI Desktop 2.159.1231.0)
+2026-11-18 16:50:25.857  INFO   Refresh all tables...
+2026-11-18 16:50:30.788  INFO   Refresh all tables: done in 4.9s
+2026-11-18 16:50:33.636  INFO   Save file: done in 2.8s
+2026-11-18 16:50:33.890  INFO   File after run: 26.3 KB, last modified 2026-11-18 16:50:31 (saved)
+2026-11-18 16:50:33.890  INFO   Finished in 22.9s. Result: SUCCESS (exit code 0)
+```
+The log file also records the command line, machine and user, the Power BI version and process id, debug detail, and Power BI's own error text when a refresh fails.
+
+If Power BI finds an element only by a fallback lookup (its UI has changed but the run still works), the log gets a `WARN` line saying so. Run `--diagnose` to see exactly what changed.
 
 > **Note**: Power BI Desktop is driven through its UI, so runs need a logged-in, unlocked Windows session. The GUI's `Generate Script` button now produces a `PowerRefresherCli` command.
 

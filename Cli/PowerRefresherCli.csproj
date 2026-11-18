@@ -16,6 +16,8 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <!-- Run 64-bit on 64-bit Windows so it can read the (64-bit) Power BI process's version for the log -->
+    <Prefer32Bit>false</Prefer32Bit>
     <!-- Put the CLI next to the GUI exe so "Generate script" finds it -->
     <OutputPath>..\bin\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
@@ -44,6 +46,7 @@
       <Link>Engine\%(Filename)%(Extension)</Link>
     </Compile>
     <Compile Include="Program.cs" />
+    <Compile Include="RunLogger.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

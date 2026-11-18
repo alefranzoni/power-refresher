@@ -136,7 +136,11 @@ namespace PowerRefresher
             RefreshOptions options = new RefreshOptions();
             ApplyFormToOptions(options);
             refresher = new PbiRefresher(options);
-            refresher.Log += text => txtOutput.Text += text;
+            refresher.Log += (level, message) =>
+            {
+                if (level == LogLevel.Debug) return;
+                txtOutput.Text += (txtOutput.TextLength > 0 ? "\n" : string.Empty) + LogFormat.Line(DateTime.Now, level, message);
+            };
 
             try
             {
