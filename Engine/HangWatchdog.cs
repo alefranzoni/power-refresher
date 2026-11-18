@@ -1,6 +1,6 @@
 using System;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
+
 using System.Threading;
 
 namespace PowerRefresher.Engine
@@ -70,7 +70,7 @@ namespace PowerRefresher.Engine
 
                 if (hangTimeout <= TimeSpan.Zero) continue;
                 IntPtr hwnd = refresher.WindowHandle;
-                bool hung = hwnd != IntPtr.Zero && IsWindow(hwnd) && !Responds(hwnd);
+                bool hung = hwnd != IntPtr.Zero && NativeMethods.IsWindow(hwnd) && !NativeMethods.Responds(hwnd);
 
                 if (hung)
                 {
@@ -123,31 +123,6 @@ namespace PowerRefresher.Engine
             disposed = true;
         }
 
-        /// <summary>
-        /// Sends the window a no-op message and waits up to 5s for it to be processed. IsHungAppWindow alone misses
-        /// a process frozen while idle (Windows only flags windows that leave pending input unprocessed).
-        /// </summary>
-        private static bool Responds(IntPtr hwnd)
-        {
-            if (IsHungAppWindow(hwnd)) return false;
-            IntPtr result = SendMessageTimeout(hwnd, WM_NULL, IntPtr.Zero, IntPtr.Zero, SMTO_ABORTIFHUNG | SMTO_BLOCK, 5000, out _);
-            return result != IntPtr.Zero;
-        }
-
-        private const uint WM_NULL = 0x0000;
-        private const uint SMTO_BLOCK = 0x0001;
-        private const uint SMTO_ABORTIFHUNG = 0x0002;
-
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam, uint flags, uint timeoutMs, out IntPtr result);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool IsHungAppWindow(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool IsWindow(IntPtr hWnd);
     }
 
     public enum HangReason

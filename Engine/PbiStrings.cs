@@ -28,11 +28,15 @@ namespace PowerRefresher.Engine
         public string RefreshDialogId = "modalDialog";
         public string RefreshInProgressButton = "Cancel";       //Only present while a refresh is running
         public string SaveWaitMessage = "Working on it";
-        public string PublishGroupDialogId = "KoPublishToGroupDialog";
-        public string PublishDialogId = "KoPublishDialog";
+        public string PublishGroupDialogId = "KoPublishToGroupDialog"; //Legacy destination dialog (gone in 2.159)
+        public string WorkspacesListName = "Workspaces";        //2.159: destination list, items are "option"s
+        public string PublishSelectButtonId = "okButton";       //2.159: "Select" in the destination dialog
+        public string PublishCancelButtonId = "cancelButton";   //2.159: "Cancel" in the destination dialog
+        public string CancelButton = "Cancel";
+        public string PublishDialogId = "KoPublishDialog";      //Legacy result dialog (2.159 equivalent not yet seen)
         public string WorkspaceContainerType = "list";
         public string SelectButton = "Select";
-        public string ReplaceDialogId = "KoPublishWithImpactViewDialog";
+        public string ReplaceDialogId = "KoPublishWithImpactViewDialog"; //Legacy (2.159 equivalent not yet seen)
         public string ReplaceButton = "Replace";
         public string SuccessPublishButton = "Got it";
         public string ScriptVisualsDialogId = "MessageDialog";
@@ -56,6 +60,8 @@ namespace PowerRefresher.Engine
                         RefreshInProgressButton = "Cancelar",
                         SaveWaitMessage = "En proceso",
                         SelectButton = "Seleccionar",
+                        WorkspacesListName = "Áreas de trabajo",    //unverified
+                        CancelButton = "Cancelar",
                         ReplaceButton = "Reemplazar",
                         SuccessPublishButton = "Entendido",
                         EnableScriptVisualsButton = "Habilitar",

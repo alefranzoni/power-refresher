@@ -131,7 +131,19 @@ namespace PowerRefresher.Engine
 
             Step("Save file", SaveFile);
 
-            if (Options.CloseFile) Close();
+            if (Options.CloseFile)
+            {
+                try
+                {
+                    Close();
+                }
+                catch (AutomationException e)
+                {
+                    //The file is already saved. A window stuck on a prompt would break the next scheduled run, so remove it.
+                    Warn($"Power BI did not close after saving ({e.Message}); killing it. The saved file is not affected.");
+                    KillPowerBI("did not close after saving");
+                }
+            }
         }
 
         /// <summary>
@@ -164,15 +176,10 @@ namespace PowerRefresher.Engine
         {
             int pid = processId;
             if (pid == 0) return;
-            try
-            {
-                Process process = Process.GetProcessById(pid);
-                Warn($"Killing Power BI (pid {pid}): {reason}");
-                process.Kill();
-                process.WaitForExit(15000);
-            }
-            catch (ArgumentException) { } //Already gone
-            catch (InvalidOperationException) { }
+            Process process;
+            try { process = Process.GetProcessById(pid); }
+            catch (ArgumentException) { pbi = null; return; } //Already gone
+            KillProcess(process, reason);
             pbi = null;
         }
 
@@ -227,7 +234,9 @@ namespace PowerRefresher.Engine
                 }
             }
 
-            foreach (string runtimeOnly in new[] { "Refresh dialog", "Save progress dialog", "Publish dialogs", "Script visuals prompt" })
+            if (Options.Publish) DiagnosePublish(results);
+
+            foreach (string runtimeOnly in new[] { "Refresh dialog", "Save progress dialog", "Publish 'Replace' prompt and result", "Script visuals prompt" })
             {
                 results.Add(new DiagnosticResult(runtimeOnly, DiagnosticStatus.NotChecked, "only appears during a real run"));
             }
@@ -238,6 +247,50 @@ namespace PowerRefresher.Engine
                 Emit(level, $"{r.Element}: {r.Status} ({r.Detail})");
             }
             return results;
+        }
+
+        /// <summary>
+        /// Opens the publish destination dialog, checks the list, the requested workspace and the Select button,
+        /// then cancels. Nothing is uploaded: the upload only starts when Select is clicked.
+        /// </summary>
+        private void DiagnosePublish(List<DiagnosticResult> results)
+        {
+            AutomationElement publish = Find(loc.PublishButton, pbi, out _);
+            if (publish == null) return; //Already reported as missing
+
+            InvokeElement(publish);
+            try
+            {
+                AutomationElement list;
+                try { list = WaitFor(loc.WorkspaceList, pbi, 30); }
+                catch (AutomationException e) when (IsElementTimeout(e)) { list = null; }
+                results.Add(Check(loc.WorkspaceList, pbi));
+                if (list == null) return;
+
+                AutomationElement workspace = FindWorkspace(list, Options.Workspace, out List<string> offered);
+                results.Add(workspace != null
+                    ? new DiagnosticResult($"Workspace '{Options.Workspace}'", DiagnosticStatus.Ok, $"listed ({offered.Count} workspaces offered)")
+                    : new DiagnosticResult($"Workspace '{Options.Workspace}'", DiagnosticStatus.Missing, "not listed. Offered: " + string.Join(", ", offered)));
+
+                if (workspace != null)
+                {
+                    SelectListItem(workspace);
+                    Thread.Sleep(500);
+                }
+                DiagnosticResult select = Check(loc.PublishSelectButton, pbi);
+                AutomationElement selectButton = Find(loc.PublishSelectButton, pbi, out _);
+                if (selectButton != null && workspace != null && !selectButton.Current.IsEnabled)
+                    select = new DiagnosticResult(select.Element, DiagnosticStatus.Missing, "found but stays disabled after selecting the workspace | " + select.Detail);
+                results.Add(select);
+                results.Add(Check(loc.PublishCancelButton, pbi));
+            }
+            finally
+            {
+                CancelPublishDialog();
+                Thread.Sleep(500);
+                if (Find(loc.WorkspaceList, pbi, out _) != null) Warn("The publish dialog may still be open; close it in Power BI before the next run.");
+                else Debug("Publish dialog cancelled; nothing was published");
+            }
         }
 
         #endregion
@@ -291,20 +344,83 @@ namespace PowerRefresher.Engine
             loc = new Locators(ui);
         }
 
+        /// <summary>
+        /// Uses a window that already has the file open if it is healthy; otherwise kills every instance holding the
+        /// file (debris from a failed run, a hung instance, a forgotten dialog) and opens it fresh.
+        /// </summary>
         private void OpenOrBindPbixFile(string fileBaseName)
         {
             OpenedFile = false;
-            Process existing = Process.GetProcessesByName(PBI_PROCESS_NAME).FirstOrDefault(p => IsPbiWindowTitle(p.MainWindowTitle, fileBaseName));
-            if (existing != null)
+            List<Process> existing = Process.GetProcessesByName(PBI_PROCESS_NAME)
+                .Where(p => IsPbiWindowTitle(p.MainWindowTitle, fileBaseName))
+                .OrderByDescending(p => p.StartTime)
+                .ToList();
+
+            if (existing.Count > 0)
             {
-                Info($"'{fileBaseName}' is already open in Power BI (pid {existing.Id}); using that window");
-                return;
+                Process newest = existing[0]; //The one FindPbiWindow would bind to
+                string problem = DescribeProblem(newest);
+                if (problem == null)
+                {
+                    Info($"'{fileBaseName}' is already open in Power BI (pid {newest.Id}) and looks healthy; using that window");
+                    if (existing.Count > 1) Warn($"{existing.Count} Power BI windows have '{fileBaseName}' open; using the newest (pid {newest.Id})");
+                    return;
+                }
+
+                Warn($"'{fileBaseName}' is already open in Power BI (pid {newest.Id}) but it {problem}; restarting it");
+                foreach (Process p in existing) KillProcess(p, "restarting an unhealthy window");
             }
 
             //Not minimized: Power BI exposes no UI to automation while its window is minimized
             Process.Start(new ProcessStartInfo(Options.FilePath) { UseShellExecute = true });
             OpenedFile = true;
             Debug($"Launched '{Options.FilePath}' through its file association");
+        }
+
+        /// <summary>Why an already-open Power BI window shouldn't be reused, or null if it looks fine.</summary>
+        private string DescribeProblem(Process process)
+        {
+            IntPtr hwnd = process.MainWindowHandle;
+            if (hwnd == IntPtr.Zero) return "has no main window (it may be starting or closing)";
+            if (!NativeMethods.Responds(hwnd)) return "is not responding";
+            if (!NativeMethods.IsWindowEnabled(hwnd)) return "is blocked by a dialog";
+
+            List<string> others = NativeMethods.OtherVisibleWindows(process.Id, hwnd);
+            if (others.Count > 0) return "is showing another window: " + string.Join(", ", others);
+
+            try
+            {
+                AutomationElement window = AutomationElement.FromHandle(hwnd);
+                WindowPattern pattern = (WindowPattern)window.GetCurrentPattern(WindowPattern.Pattern);
+                if (pattern.Current.WindowVisualState == WindowVisualState.Minimized)
+                {
+                    //Its UI is invisible to automation while minimized, so dialogs couldn't be seen
+                    Debug("Existing window is minimized; restoring it to check for open dialogs");
+                    pattern.SetWindowVisualState(WindowVisualState.Normal);
+                    Thread.Sleep(1500);
+                }
+
+                if (Find(loc.RefreshDialog, window, out _) != null) return "has a refresh dialog open (probably left over from a failed refresh)";
+                if (Find(loc.WorkspaceList, window, out _) != null) return "has the publish dialog open";
+                if (FindById(window, ui.ScriptVisualsDialogId) != null) return "is showing a prompt (script visuals or a message)";
+            }
+            catch (Exception e) when (e is ElementNotAvailableException || e is InvalidOperationException)
+            {
+                return $"could not be inspected ({e.Message})";
+            }
+            return null;
+        }
+
+        private void KillProcess(Process process, string reason)
+        {
+            try
+            {
+                Warn($"Killing Power BI (pid {process.Id}): {reason}");
+                process.Kill();
+                if (!process.WaitForExit(15000)) Warn($"Power BI (pid {process.Id}) did not exit within 15s of being killed");
+            }
+            catch (InvalidOperationException) { } //Already gone
+            catch (System.ComponentModel.Win32Exception e) { Warn($"Could not kill Power BI (pid {process.Id}): {e.Message}"); }
         }
 
         private void FindPowerBIWindow(string fileBaseName)
@@ -610,36 +726,64 @@ namespace PowerRefresher.Engine
         {
             InvokeElement(WaitFor(loc.PublishButton, pbi));
 
-            AutomationElement publishDialog = WaitForElement(() => FindById(pbi, ui.PublishGroupDialogId), "the publish destination dialog");
-            AutomationElement list = WaitForElement(() => publishDialog.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.LocalizedControlTypeProperty, ui.WorkspaceContainerType)), "the workspace list");
-
-            string targetWorkspace = null;
-            List<string> seen = new List<string>();
-            for (AutomationElement item = WaitForElement(() => TreeWalker.ControlViewWalker.GetFirstChild(list), "the workspace list items");
-                 item != null && targetWorkspace == null;
-                 item = TreeWalker.ContentViewWalker.GetNextSibling(item))
+            //Destination dialog: pick the workspace, then "Select" starts the upload
+            AutomationElement list = WaitFor(loc.WorkspaceList, pbi);
+            AutomationElement workspace = FindWorkspace(list, Options.Workspace, out List<string> offered);
+            if (workspace == null)
             {
-                seen.Add(item.Current.Name);
-                if (string.Equals(item.Current.Name, Options.Workspace, StringComparison.OrdinalIgnoreCase)) targetWorkspace = item.Current.Name;
+                CancelPublishDialog();
+                throw new AutomationException($"Workspace '{Options.Workspace}' not found. Workspaces offered: {string.Join(", ", offered)}");
             }
-            if (targetWorkspace == null) throw new AutomationException($"Workspace '{Options.Workspace}' not found. Workspaces offered: {string.Join(", ", seen)}");
+            SelectListItem(workspace);
+            Debug($"Selected workspace '{workspace.Current.Name}'");
+            InvokeElement(WaitFor(loc.PublishSelectButton, pbi));
 
-            InvokeElement(WaitForElement(() => FindByName(publishDialog, targetWorkspace), $"workspace '{targetWorkspace}'"));
-            InvokeElement(WaitForElement(() => FindByName(publishDialog, ui.SelectButton), $"the '{ui.SelectButton}' button"));
-
-            //Replace dialog only appears when the dataset already exists in the workspace
-            AutomationElement replaceDialog = null;
-            try { replaceDialog = WaitForElement(() => FindById(pbi, ui.ReplaceDialogId), "the replace dataset dialog", 5, 1000); }
+            //Only shown when a dataset with this name already exists in the workspace
+            AutomationElement replace = null;
+            try { replace = WaitFor(loc.ReplaceButton, pbi, 10, 1000); }
             catch (AutomationException e) when (IsElementTimeout(e)) { Debug("No replace prompt (new dataset in this workspace)"); }
-            if (replaceDialog != null)
+            if (replace != null)
             {
-                Info("Dataset already exists in the workspace; replacing it");
-                InvokeElement(WaitForElement(() => FindByName(replaceDialog, ui.ReplaceButton), $"the '{ui.ReplaceButton}' button"));
+                Info("A dataset with this name already exists in the workspace; replacing it");
+                InvokeElement(replace);
             }
 
             //Upload can take a while on large models
-            AutomationElement resultDialog = WaitForElement(() => FindById(pbi, ui.PublishDialogId), "the publishing progress dialog");
-            InvokeElement(WaitForElement(() => FindByName(resultDialog, ui.SuccessPublishButton), $"the '{ui.SuccessPublishButton}' button (publish result)", SAVE_TIMEOUT_SECONDS));
+            Info("Uploading...");
+            InvokeElement(WaitFor(loc.PublishSuccessButton, pbi, SAVE_TIMEOUT_SECONDS, 1000));
+        }
+
+        /// <summary>Finds a workspace in the destination list by name (case-insensitive) and returns every name offered.</summary>
+        private static AutomationElement FindWorkspace(AutomationElement list, string name, out List<string> offered)
+        {
+            offered = new List<string>();
+            AutomationElement match = null;
+            for (AutomationElement item = TreeWalker.ControlViewWalker.GetFirstChild(list); item != null; item = TreeWalker.ControlViewWalker.GetNextSibling(item))
+            {
+                string itemName = item.Current.Name?.Trim();
+                offered.Add(itemName);
+                if (match == null && string.Equals(itemName, name?.Trim(), StringComparison.OrdinalIgnoreCase)) match = item;
+            }
+            return match;
+        }
+
+        private static void SelectListItem(AutomationElement item)
+        {
+            if (item.TryGetCurrentPattern(SelectionItemPattern.Pattern, out object selection)) ((SelectionItemPattern)selection).Select();
+            else InvokeElement(item);
+        }
+
+        /// <summary>Closes the destination dialog without publishing: Cancel button, or Escape as a fallback.</summary>
+        private void CancelPublishDialog()
+        {
+            AutomationElement cancel = Find(loc.PublishCancelButton, pbi, out _);
+            if (cancel != null)
+            {
+                TryDo(() => InvokeElement(cancel));
+                return;
+            }
+            Debug("No Cancel button in the publish dialog; pressing Escape");
+            CloseMenus();
         }
 
         #endregion
@@ -672,7 +816,8 @@ namespace PowerRefresher.Engine
 
         private sealed class Locators
         {
-            public readonly Locator RefreshButton, SaveButton, PublishButton, FieldTree, TableName, MoreOptions, RefreshMenu, RefreshDataItem, RefreshDialog;
+            public readonly Locator RefreshButton, SaveButton, PublishButton, FieldTree, TableName, MoreOptions, RefreshMenu, RefreshDataItem, RefreshDialog,
+                WorkspaceList, PublishSelectButton, PublishCancelButton, ReplaceButton, PublishSuccessButton;
 
             public Locators(PbiStrings ui)
             {
@@ -723,6 +868,43 @@ namespace PowerRefresher.Engine
                     new Strategy("dialog named '" + ui.RefreshButtonName + "'", r => r.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, ui.RefreshButtonName))
                         .Cast<AutomationElement>()
                         .FirstOrDefault(e => string.Equals(e.Current.LocalizedControlType, "dialog", StringComparison.OrdinalIgnoreCase))));
+                WorkspaceList = new Locator("Publish dialog workspace list",
+                    new Strategy("list named '" + ui.WorkspacesListName + "'", r => r.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, ui.WorkspacesListName))
+                        .Cast<AutomationElement>()
+                        .FirstOrDefault(e => e.Current.ControlType == ControlType.List)),
+                    new Strategy("selection list with class 'mat-mdc-selection-list'", r => r.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.List))
+                        .Cast<AutomationElement>()
+                        .FirstOrDefault(e => Cls(e).Contains("mat-mdc-selection-list"))),
+                    new Strategy("first list inside dialog '" + ui.PublishGroupDialogId + "' (legacy)", r =>
+                    {
+                        AutomationElement dialog = FindById(r, ui.PublishGroupDialogId);
+                        return dialog?.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.LocalizedControlTypeProperty, ui.WorkspaceContainerType));
+                    }));
+
+                PublishSelectButton = new Locator("Publish dialog 'Select' button",
+                    new Strategy("AutomationId '" + ui.PublishSelectButtonId + "'", r => FindById(r, ui.PublishSelectButtonId)),
+                    new Strategy("clickable button named '" + ui.SelectButton + "'", r => FindButtons(r, ui.SelectButton).FirstOrDefault(Invokable)));
+
+                //No by-name fallback: the formula bar also has a button named "Cancel"
+                PublishCancelButton = new Locator("Publish dialog 'Cancel' button",
+                    new Strategy("AutomationId '" + ui.PublishCancelButtonId + "'", r => FindById(r, ui.PublishCancelButtonId)));
+
+                //The 2.159 replace prompt and result screen haven't been inspected yet, so the by-name lookup comes first
+                ReplaceButton = new Locator("Publish 'Replace' button",
+                    new Strategy("clickable button named '" + ui.ReplaceButton + "'", r => FindButtons(r, ui.ReplaceButton).FirstOrDefault(Invokable)),
+                    new Strategy("button named '" + ui.ReplaceButton + "' inside dialog '" + ui.ReplaceDialogId + "' (legacy)", r =>
+                    {
+                        AutomationElement dialog = FindById(r, ui.ReplaceDialogId);
+                        return dialog == null ? null : FindButtons(dialog, ui.ReplaceButton).FirstOrDefault();
+                    }));
+
+                PublishSuccessButton = new Locator("Publish result 'Got it' button",
+                    new Strategy("clickable button named '" + ui.SuccessPublishButton + "'", r => FindButtons(r, ui.SuccessPublishButton).FirstOrDefault(Invokable)),
+                    new Strategy("button named '" + ui.SuccessPublishButton + "' inside dialog '" + ui.PublishDialogId + "' (legacy)", r =>
+                    {
+                        AutomationElement dialog = FindById(r, ui.PublishDialogId);
+                        return dialog == null ? null : FindButtons(dialog, ui.SuccessPublishButton).FirstOrDefault();
+                    }));
             }
 
             private static IEnumerable<AutomationElement> FindButtons(AutomationElement root, string name) =>

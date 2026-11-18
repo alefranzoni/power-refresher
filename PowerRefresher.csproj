@@ -25,7 +25,7 @@
     <MapFileExtensions>true</MapFileExtensions>
     <AutorunEnabled>true</AutorunEnabled>
     <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>2.1.0.%2a</ApplicationVersion>
+    <ApplicationVersion>2.2.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -97,9 +97,14 @@
   <ItemGroup>
     <Compile Include="Engine\HangWatchdog.cs" />
     <Compile Include="Engine\Logging.cs" />
+    <Compile Include="Engine\NativeMethods.cs" />
     <Compile Include="Engine\PbiRefresher.cs" />
     <Compile Include="Engine\PbiStrings.cs" />
     <Compile Include="Engine\RefreshOptions.cs" />
+    <Compile Include="frmSchedule.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ScheduledTask.cs" />
     <Compile Include="frmMain.cs">
       <SubType>Form</SubType>
     </Compile>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -15,6 +15,8 @@ namespace PowerRefresher.Cli
         private const int EXIT_REFRESH_FAILED = 2;
         private const int EXIT_AUTOMATION_ERROR = 3;
         private const int EXIT_HUNG = 4;
+        private const int EXIT_ALREADY_RUNNING = 5;
+        private const int EXIT_NO_DESKTOP = 6;
 
         private const string USAGE = @"PowerRefresherCli - refresh, publish and save a Power BI Desktop file unattended.
 
@@ -29,11 +31,16 @@ What to do:
   --diagnose               Open the file and check every Power BI UI element this tool
                            relies on, without refreshing or saving. Run this after a
                            Power BI update, or when a run fails with a timeout.
+                           Add --publish <workspace> to also check the publish dialog:
+                           it is opened, checked and cancelled; nothing is uploaded.
 
 Logging:
   --log <path>             Append a detailed, timestamped log of the run to this file.
-                           If <path> is a folder (or ends with \), each run gets its own
-                           file in it, e.g. PowerRefresher_20261118_163001_Sales.log
+                           If <path> is a folder (or has no extension), each run gets its
+                           own file in it, e.g. PowerRefresher_20261118_163001_Sales.log
+                           Write folders without a trailing backslash: ""C:\Logs""
+  --log-keep-days <days>   In a log folder, delete run logs older than this. Default: 30.
+                           0 keeps everything. A single named log file is never pruned.
   -v, --verbose            Also show debug detail on the console (the log file always has it).
   -q, --quiet              Show errors only on the console.
 
@@ -62,16 +69,21 @@ Exit codes:
   3  automation error (timeout, Power BI UI element not found, publish failed);
      for --diagnose: at least one element could not be found
   4  Power BI hung or the run exceeded --max-runtime; Power BI was killed
+  5  another run on the same file was still in progress; nothing was done
+  6  no interactive desktop: in Task Scheduler use ""Run only when user is logged on""
 
-Notes:
-  Power BI Desktop is driven through its UI, so this needs a logged-in, unlocked
-  Windows session. Don't interact with the Power BI window while it runs.
+Scheduled runs:
+  Power BI Desktop is driven through its UI, so the task must run in a logged-on
+  user's session: ""Run only when user is logged on"". Also set ""If the task is already
+  running: Do not start a new instance"". Don't use the Power BI window while it runs.
+  If the file is already open, a healthy window is reused; a hung window, or one stuck
+  on a dialog, is killed and reopened. A failed run closes the Power BI it opened.
 
 Examples:
-  PowerRefresherCli ""C:\Reports\Sales.pbix"" --log ""C:\Logs\""
+  PowerRefresherCli ""C:\Reports\Sales.pbix"" --log ""C:\Logs""
   PowerRefresherCli ""C:\Reports\Sales.pbix"" --table Orders --table Customers --retries 1
   PowerRefresherCli ""C:\Reports\Sales.pbix"" --publish ""Finance Reports"" --timeout 600
-  PowerRefresherCli ""C:\Reports\Sales.pbix"" --diagnose";
+  PowerRefresherCli ""C:\Reports\Sales.pbix"" --diagnose --publish ""My workspace""";
 
         [STAThread]
         private static int Main(string[] args)
@@ -107,12 +119,92 @@ Examples:
 
                 FileSnapshot before = FileSnapshot.Of(cli.Options.FilePath);
                 WriteHeader(logger, cli, args, before);
-
                 Stopwatch runClock = Stopwatch.StartNew();
-                int exitCode = Execute(cli, logger, runClock);
+
+                int deleted = logger.PruneOldLogs(cli.LogKeepDays);
+                if (deleted > 0) logger.Write(LogLevel.Debug, $"Deleted {deleted} run log(s) older than {cli.LogKeepDays} days from {logger.LogFolder}");
+
+                int exitCode = CheckSession(logger);
+                if (exitCode == EXIT_OK)
+                {
+                    using (RunLock runLock = RunLock.TryAcquire(cli.Options.FilePath, logger))
+                    {
+                        exitCode = runLock == null ? EXIT_ALREADY_RUNNING : Execute(cli, logger, runClock);
+                    }
+                }
 
                 WriteFooter(logger, cli, exitCode, runClock.Elapsed, before);
                 return exitCode;
+            }
+        }
+
+        /// <summary>Fails fast where Power BI can't be automated; warns about session states known to cause trouble.</summary>
+        private static int CheckSession(RunLogger logger)
+        {
+            if (!SessionInfo.HasInteractiveDesktop)
+            {
+                logger.Write(LogLevel.Error,
+                    $"No interactive desktop (session {SessionInfo.SessionId}). Power BI Desktop can only be automated in a logged-on user's session.\n" +
+                    "In Task Scheduler, set the task to \"Run only when user is logged on\" (not \"Run whether user is logged on or not\").");
+                return EXIT_NO_DESKTOP;
+            }
+
+            logger.Write(LogLevel.Debug, $"Windows session: {SessionInfo.Describe()}");
+            if (SessionInfo.IsLocked())
+            {
+                logger.Write(LogLevel.Warn, "The workstation is locked. Clicks through UI Automation normally still work, but keyboard fallbacks don't. " +
+                    "If runs fail only while locked, keep the session unlocked (for example on a dedicated machine).");
+            }
+            if (SessionInfo.IsRemote && SessionInfo.ConnectionState() == "disconnected")
+            {
+                logger.Write(LogLevel.Warn, "This is a disconnected Remote Desktop session; Windows may stop drawing windows, and Power BI's UI can vanish from automation. " +
+                    "Prefer a console session, or keep the Remote Desktop window connected (minimized is fine).");
+            }
+            return EXIT_OK;
+        }
+
+        /// <summary>
+        /// One run per .pbix at a time. A second scheduled run starting while the first is still refreshing would
+        /// drive the same Power BI window; it exits with code 5 instead.
+        /// </summary>
+        private sealed class RunLock : IDisposable
+        {
+            private readonly System.Threading.Mutex mutex;
+
+            private RunLock(System.Threading.Mutex mutex) { this.mutex = mutex; }
+
+            public static RunLock TryAcquire(string pbixPath, RunLogger logger)
+            {
+                string name = @"Local\PowerRefresher_" + Hash(Path.GetFullPath(pbixPath).ToUpperInvariant());
+                System.Threading.Mutex mutex = new System.Threading.Mutex(false, name);
+                try
+                {
+                    if (mutex.WaitOne(0)) return new RunLock(mutex);
+                }
+                catch (System.Threading.AbandonedMutexException)
+                {
+                    //A previous run died without releasing it; we now own it
+                    logger.Write(LogLevel.Warn, "A previous run on this file ended abnormally (it was killed or crashed); continuing");
+                    return new RunLock(mutex);
+                }
+                mutex.Dispose();
+                logger.Write(LogLevel.Error, "Another PowerRefresherCli run is already working on this file; not starting a second one. " +
+                    "If this happens on every scheduled run, the previous run may be stuck: check its log.");
+                return null;
+            }
+
+            private static string Hash(string text)
+            {
+                using (System.Security.Cryptography.SHA1 sha = System.Security.Cryptography.SHA1.Create())
+                {
+                    return BitConverter.ToString(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(text))).Replace("-", string.Empty);
+                }
+            }
+
+            public void Dispose()
+            {
+                try { mutex.ReleaseMutex(); } catch (ApplicationException) { }
+                mutex.Dispose();
             }
         }
 
@@ -137,6 +229,7 @@ Examples:
                         Environment.Exit(EXIT_HUNG);
                     }))
                 {
+                    bool retryable;
                     try
                     {
                         //Outcomes returned as codes (success, bad table names, --diagnose results) are final: no retry
@@ -146,40 +239,64 @@ Examples:
                     {
                         logger.Write(LogLevel.Debug, $"Automation stopped after Power BI was killed: {e.GetType().Name}: {e.Message}");
                         exitCode = EXIT_HUNG;
-                        if (watchdog.Reason == HangReason.MaxRuntime) return exitCode; //Retrying would only run longer
+                        retryable = watchdog.Reason != HangReason.MaxRuntime; //Retrying would only run longer
                     }
                     catch (PowerBIUnresponsiveException e)
                     {
                         //Watchdog hadn't tripped yet, but UI Automation itself timed out: same situation
                         if (!PbiRefresher.WasLogged(e)) logger.Write(LogLevel.Error, e.Message);
                         exitCode = EXIT_HUNG;
+                        retryable = true;
                     }
                     catch (RefreshFailedException e)
                     {
-                        //Data or credential problem in Power BI: retrying won't fix it. Leave the window open so the error can be read.
+                        //Data or credential problem in Power BI: retrying won't fix it. The error text is in the log.
                         logger.Write(LogLevel.Error, e.Message);
-                        return EXIT_REFRESH_FAILED;
+                        exitCode = EXIT_REFRESH_FAILED;
+                        retryable = false;
                     }
                     catch (AutomationException e)
                     {
                         if (!PbiRefresher.WasLogged(e)) logger.Write(LogLevel.Error, e.Message);
                         exitCode = EXIT_AUTOMATION_ERROR;
+                        retryable = true;
                     }
                     catch (Exception e)
                     {
                         //Unexpected: always log the full exception (type and stack) for bug reports
                         logger.Write(LogLevel.Error, $"Unexpected error: {e}");
                         exitCode = EXIT_AUTOMATION_ERROR;
+                        retryable = true;
                     }
 
-                    if (attempt < attempts)
+                    if (retryable && attempt < attempts)
                     {
                         refresher.KillPowerBI("retrying from a clean start");
                         logger.Write(LogLevel.Warn, $"Attempt {attempt} failed (exit code {exitCode}); retrying");
+                        continue;
                     }
+
+                    CleanUpAfterFailure(cli, refresher, logger);
+                    return exitCode;
                 }
             }
             return exitCode;
+        }
+
+        /// <summary>
+        /// A failed run must not leave its Power BI window behind: the next scheduled run would find it stuck on an
+        /// error dialog. Kills the instance this run opened (or restarted); windows it merely attached to are left
+        /// alone, and the next run's health check restarts them if they are stuck. --keep-open keeps it for inspection.
+        /// </summary>
+        private static void CleanUpAfterFailure(CliArgs cli, PbiRefresher refresher, RunLogger logger)
+        {
+            if (!refresher.OpenedFile || refresher.ProcessId == 0) return;
+            if (!cli.Options.CloseFile)
+            {
+                logger.Write(LogLevel.Info, $"Leaving Power BI (pid {refresher.ProcessId}) open because of --keep-open");
+                return;
+            }
+            refresher.KillPowerBI("cleaning up after the failed run so the next run starts clean");
         }
 
         /// <summary>One attempt. Returns an exit code for outcomes that are not exceptions.</summary>
@@ -248,7 +365,7 @@ Examples:
         {
             RefreshOptions o = cli.Options;
             string version = Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
-            string mode = cli.Diagnose ? "diagnose" : cli.ListTables ? "list tables"
+            string mode = cli.Diagnose ? (o.Publish ? $"diagnose, including publish dialog for workspace '{o.Workspace}'" : "diagnose") : cli.ListTables ? "list tables"
                 : o.RefreshAll ? "refresh all tables" : $"refresh {o.Tables.Count} table(s): {string.Join(", ", o.Tables)}";
 
             logger.WriteFileOnly(string.Empty);
@@ -285,6 +402,8 @@ Examples:
                 case EXIT_USAGE: result = "FAILED: bad arguments"; break;
                 case EXIT_REFRESH_FAILED: result = "FAILED: Power BI reported a refresh error"; break;
                 case EXIT_HUNG: result = "FAILED: Power BI hung or the run took too long; Power BI was killed"; break;
+                case EXIT_ALREADY_RUNNING: result = "SKIPPED: another run on this file is in progress"; break;
+                case EXIT_NO_DESKTOP: result = "FAILED: no interactive desktop (check the task's \"Run only when user is logged on\" setting)"; break;
                 default: result = cli.Diagnose ? "FAILED: some UI elements are missing" : "FAILED: automation error"; break;
             }
             logger.Write(exitCode == EXIT_OK ? LogLevel.Info : LogLevel.Error, $"Finished in {LogFormat.Duration(elapsed)}. Result: {result} (exit code {exitCode})");
@@ -319,6 +438,7 @@ Examples:
             public TimeSpan HangTimeout = TimeSpan.FromSeconds(300);
             public TimeSpan MaxRuntime = TimeSpan.FromMinutes(360);
             public int Retries;
+            public int LogKeepDays = 30;
         }
 
         private static bool TryParse(string[] args, out CliArgs cli, out string error)
@@ -403,6 +523,10 @@ Examples:
                         if (!TakeInt(out n, 0)) { error = "--max-runtime needs a number of minutes (0 disables it)."; return false; }
                         cli.MaxRuntime = TimeSpan.FromMinutes(n);
                         break;
+                    case "--log-keep-days":
+                        if (!TakeInt(out n, 0)) { error = "--log-keep-days needs a number of days (0 keeps everything)."; return false; }
+                        cli.LogKeepDays = n;
+                        break;
                     case "--retries":
                         if (!TakeInt(out n, 0) || n > 5) { error = "--retries needs a number from 0 to 5."; return false; }
                         cli.Retries = n;
@@ -429,8 +553,8 @@ Examples:
             if (!File.Exists(cli.Options.FilePath)) { error = $"file not found: {cli.Options.FilePath}"; return false; }
             if (cli.Quiet && cli.Verbose) { error = "--quiet and --verbose can't be used together."; return false; }
             if (cli.ListTables && cli.Diagnose) { error = "--list-tables and --diagnose can't be used together."; return false; }
-            if ((cli.ListTables || cli.Diagnose) && (tables.Count > 0 || cli.Options.Publish))
-            { error = "--list-tables and --diagnose can't be combined with --table or --publish."; return false; }
+            if (cli.ListTables && (tables.Count > 0 || cli.Options.Publish)) { error = "--list-tables can't be combined with --table or --publish."; return false; }
+            if (cli.Diagnose && tables.Count > 0) { error = "--diagnose can't be combined with --table."; return false; }
 
             cli.Options.Tables = tables;
             return true;
