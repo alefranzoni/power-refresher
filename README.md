@@ -92,8 +92,41 @@ Simply, you have to execute the program and set all the options shown in the use
 
 <p align="right">(<a href="#top">↑ Top</a>)</p>
 
-### Command Line Arguments
-Run the **PowerRefresher** application by passing the following arguments:
+### Command Line (PowerRefresherCli)
+For unattended runs (Task Scheduler, CI agents, batch files) use `PowerRefresherCli.exe`, which is built next to `PowerRefresher.exe`. It prints progress to the console, never shows dialogs, and returns an exit code you can check.
+
+```batchfile
+PowerRefresherCli <file.pbix> [options]
+```
+| Option                       | Description                                                                 |
+|------------------------------|-----------------------------------------------------------------------------|
+|`--table <name>`              |Refresh only this table; repeat for several. Default: refresh the whole model |
+|`--publish <workspace>`       |Publish to this workspace after refreshing                                   |
+|`--timeout <seconds>`         |How long to wait for Power BI to open the file (default 300)                 |
+|`--script-visuals <mode>`     |`abort` (default), `enable` or `disable` when Power BI asks about R/Python visuals |
+|`--keep-open`                 |Leave the file open when done (default: close it)                           |
+|`--lang <en\|es>`             |Power BI Desktop UI language (default `en`)                                  |
+|`--list-tables`               |Print the model's table names and exit                                       |
+|`-q`, `--quiet`               |Print errors only                                                            |
+
+| Exit code | Meaning                                                              |
+|-----------|----------------------------------------------------------------------|
+| `0`       | Success                                                              |
+| `1`       | Bad arguments (unknown option, missing file, table not in model)      |
+| `2`       | Power BI reported that the refresh failed                            |
+| `3`       | Automation error (timeout, UI element not found, publish failed)     |
+
+#### Examples
+```batchfile
+PowerRefresherCli "C:\Reports\Sales.pbix"
+PowerRefresherCli "C:\Reports\Sales.pbix" --table Orders --table Customers
+PowerRefresherCli "C:\Reports\Sales.pbix" --publish "Finance Reports" --timeout 600
+```
+
+> **Note**: Power BI Desktop is driven through its UI, so runs need a logged-in, unlocked Windows session. The GUI's `Generate Script` button now produces a `PowerRefresherCli` command.
+
+### Legacy Command Line Arguments
+The GUI executable still accepts the original positional arguments, so existing scripts keep working. Run the **PowerRefresher** application by passing the following arguments:
 
 ```batchfile
 -target=path -timeout=180 -refresh_mode=all/fields -fields="[field1,fieldN]" -publish=bool -workspace=name -enable_script_visuals=bool -sv_force_refresh=bool -closefile=bool -closeapp=bool -pbi_lang=en/es
@@ -117,7 +150,6 @@ Run the **PowerRefresher** application by passing the following arguments:
 -target="C:\Users\MyUser\Desktop\My File.pbix" -timeout=180 -refresh_mode=fields -fields="[Table1,Table2]" -publish=true -workspace="My workspace" -enable_script_visuals=false -sv_force_refresh=true -closefile=true -closeapp=true -pbi_lang=en
 ```
 
-> **Note**: *Remember that you can generate the script from the* `Generate Script` *button.*
 <p align="right">(<a href="#top">↑ Top</a>)</p>
 
 <!-- ROADMAP -->

@@ -93,6 +93,9 @@
     <Reference Include="UIAutomationTypes" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Engine\PbiRefresher.cs" />
+    <Compile Include="Engine\PbiStrings.cs" />
+    <Compile Include="Engine\RefreshOptions.cs" />
     <Compile Include="frmMain.cs">
       <SubType>Form</SubType>
     </Compile>
