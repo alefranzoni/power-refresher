@@ -1,62 +1,25 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Threading;
-using System.Windows.Automation;
 using System.Windows.Forms;
+using PowerRefresher.Engine;
 
 namespace PowerRefresher
 {
     public partial class frmMain : Form
     {
-        //Default Control Strings : English
-        private string REFRESH_BUTTON = "refreshQueries";
-        private string REFRESH_DIALOG = "modalDialog";
-        private string CANCEL_REFRESH_BUTTON = "Close";
-        private string REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
-        private string SAVE_BUTTON = "save";
-        private string SAVE_WAIT_MESSAGE = "Working on it";
-        private string PUBLISH_BUTTON = "publish";
-        private string PUBLISH_GROUP_DIALOG = "KoPublishToGroupDialog";
-        private string PUBLISH_DIALOG = "KoPublishDialog";
-        private string WORKSPACE_CONTAINER = "list";
-        private string SELECT_BUTTON = "Select";
-        private string REPLACE_DIALOG = "KoPublishWithImpactViewDialog";
-        private string REPLACE_BUTTON = "Replace";
-        private string SUCCESS_PUBLISH = "Got it";
-        private string SCRIPT_VISUALS_DIALOG = "MessageDialog";
-        private string ENABLE_SCRIPT_VISUALS_BUTTON = "Enable";
-        private string CANCEL_SCRIPT_VISUALS_BUTTON = "Cancel";
+        private const string CLI_EXE_NAME = "PowerRefresherCli.exe";
 
+        private PbiRefresher refresher;
 
-        private AutomationElement desktop;
-        private AutomationElement pbi;
-        private AutomationElement treeContainer;
-        private AutomationElement treeElementNode;
-        private AutomationElement refreshButton;
-        private AutomationElement refreshDialog;
-        private AutomationElement saveDialog;
-        private AutomationElement publishDialog;
-        private AutomationElement cancelRefreshButton;
-        private AutomationElement saveButton;
-        private AutomationElement publishButton;
-        private AutomationElement targetWorkspaceElement;
-        private AutomationElement replaceDatasetDialog;
-        private AutomationElement refreshContextualMenu;
-        private AutomationElement enableScriptVisualsDialog;   
-        private AutomationElement enableScriptVisualsButton;   
-        private AutomationElement cancelScriptVisualsButton;
-
-        private WindowPattern windowPattern;
-        private InvokePattern invokePattern;
-        private SelectionItemPattern selectionItemPattern;
-
-        private int timeout;
+        //Legacy positional command line (kept so existing .bat scripts keep working)
         private string targetCmd, refreshModeCmd, fieldsCmd, workspaceNameCmd, pbiLangCmd;
         private bool enableScriptVisualsCmd, continueRefreshCmd, publishCmd, closeFileCmd, closeAppCmd, userArgsPassed;
         private int timeoutCmd;
-        private Stopwatch stopWatch;
 
         public frmMain() => InitializeComponent();
 
@@ -67,7 +30,7 @@ namespace PowerRefresher
 
             if (args.Length == 1) return;
 
-            if ((args.Length < 12 && args.Length > 1) || (args.Length > 12 && args.Length > 1) || args[1].Contains("help") || !IsValidArgs() || !GetAndStoreArguments())
+            if (args.Length != 12 || args[1].Contains("help") || !IsValidArgs() || !GetAndStoreArguments())
             {
                 ShowMessage(Properties.Resources.helpMessage, MessageBoxIcon.Information);
                 return;
@@ -81,7 +44,6 @@ namespace PowerRefresher
             if (userArgsPassed)
             {
                 SetFormValues();
-                SetPbiControlStringsByLang(englishAppLang.Checked ? "en" : "es");
                 if (GetFileData() == false) return;
                 Thread.Sleep(1500);
                 cmdStartRefresh.PerformClick();
@@ -91,48 +53,22 @@ namespace PowerRefresher
         private void cmdSetInput_Click(object sender, EventArgs e) => BrowseInputFile();
         private void cmdStartRefresh_Click(object sender, EventArgs e)
         {
-            //Validations
             if (!CheckRequiredFields()) return;
 
-            //Getting application window pattern to handle its behavior
-            GetApplicationWindowPattern();
-
+            Stopwatch stopWatch = Stopwatch.StartNew();
             try
             {
-                stopWatch = new Stopwatch();
-                stopWatch.Start();
-                
-                //Refresh
-                if (chkRefreshAll.Checked) RefreshAll(); else RefreshSelection();
-                if (!RefreshSuccess()) throw new Exception("Refresh failed. Please check refresh dialog for details and try again.");
+                ApplyFormToOptions(refresher.Options);
+                refresher.Run();
 
-                //Publish
-                if (chkPublish.Checked)
-                {
-                    SaveFile();
-                    PublishFile();
-                }
-
-                //Save
-                SaveFile();
-
-                //Close file
-                if (chkCloseFileOnFinish.Checked) CloseFile();
-
-                //Success
                 stopWatch.Stop();
-                TimeSpan t = TimeSpan.FromMilliseconds(stopWatch.ElapsedMilliseconds);
-                string timeElapsed = string.Format("{0:D1} hours {1:D1} minutes {2:D1} secs",
-                            t.Hours,
-                            t.Minutes,
-                            t.Seconds);
-
+                TimeSpan t = stopWatch.Elapsed;
+                string timeElapsed = $"{t.Hours:D1} hours {t.Minutes:D1} minutes {t.Seconds:D1} secs";
 
                 txtOutput.Text += $"\n\n=== REFRESH FINISHED ===\nTime elapsed: {timeElapsed}\nThanks for using PowerRefresher!\n";
                 txtOutput.Text += "-\nPowerRefresher @ https://github.com/alefranzoni/power-refresher" +
                     "\nAlejandro Franzoni Gimenez @ https://alejandrofranzoni.com.ar \n";
 
-                //Close application
                 if (chkCloseAppOnFinish.Checked) CloseApplication();
 
                 BringToFront();
@@ -140,7 +76,6 @@ namespace PowerRefresher
             }
             catch (Exception err)
             {
-                stopWatch.Stop();
                 RefreshFailed(err);
             }
         }
@@ -160,179 +95,86 @@ namespace PowerRefresher
                 BringToFront();
                 Activate();
             }
-
         }
-        private void txtOutput_LinkClicked(object sender, LinkClickedEventArgs e) => OpenLink(e.LinkText);
+        private void txtOutput_LinkClicked(object sender, LinkClickedEventArgs e) => OpenFile(e.LinkText);
         private void chkRefreshAll_CheckedChanged(object sender, EventArgs e)
         {
             chklModelFields.Enabled = !chkRefreshAll.Checked;
             lblModelFields.Enabled = !chkRefreshAll.Checked;
-            if (chklModelFields.CheckedItems.Count == 0) { return; }
+            if (chklModelFields.CheckedItems.Count == 0) return;
             SetModelFieldsSelectionState(false);
-            
         }
         private void chkPublish_CheckedChanged(object sender, EventArgs e)
         {
             lblWorkspace.Visible = chkPublish.Checked;
             txtWorkspace.Visible = chkPublish.Checked;
         }
+        private void chkEnableScriptVisuals_CheckedChanged(object sender, EventArgs e)
+        {
+            chkContinueRefresh.Enabled = !chkEnableScriptVisuals.Checked;
+        }
         private void txtOutput_TextChanged(object sender, EventArgs e)
         {
             txtOutput.SelectionStart = txtOutput.TextLength;
             txtOutput.ScrollToCaret();
         }
-        private void englishAppLang_CheckedChanged(object sender, EventArgs e) => SetPbiControlStringsByLang(englishAppLang.Checked ? "en" : "es");
-        private void spanishAppLang_CheckedChanged(object sender, EventArgs e) => SetPbiControlStringsByLang(englishAppLang.Checked ? "en" : "es");
+        //Language is read from the radio buttons whenever options are built
+        private void englishAppLang_CheckedChanged(object sender, EventArgs e) { }
+        private void spanishAppLang_CheckedChanged(object sender, EventArgs e) { }
 
         private void selectAllFieldsMenuItem_Click(object sender, EventArgs e) => SetModelFieldsSelectionState(true);
         private void clearSelectionMenuItem_Click(object sender, EventArgs e) => SetModelFieldsSelectionState(false);
         private void copySelectedMenuItem_Click(object sender, EventArgs e) => SetTextToClipboard(txtOutput.SelectedText);
         private void selectAllTextMenuItem_Click(object sender, EventArgs e) => txtOutput.SelectAll();
 
-        private void RefreshAll()
-        {
-            PressModelRefreshButton();
-            LookForRefreshDialog();
-            WaitForRefreshToFinish();
-        }
-        private void RefreshSelection()
-        {
-            string selectedFields = null;
-            int selectedFieldsCounter = 0;
-            
-            GetSelectedFields(ref selectedFields, ref selectedFieldsCounter);
-            GetTreeContainer();
-            RefreshSelectedFields(selectedFields, selectedFieldsCounter);
-        }
-        private void RefreshSelectedFields(string selectedFields, int selectedFieldsCounter)
-        {
-            int selectedFieldsUpdatedCounter = 0;
-
-            do
-            {
-                bool fieldSelected = false;
-
-                if (selectedFields.Contains(treeElementNode.Current.Name))
-                {
-                    txtOutput.Text += $"\n[INFO] FIELD {selectedFieldsUpdatedCounter + 1}/{selectedFieldsCounter} ({treeElementNode.Current.Name})";
-                    fieldSelected = true;
-
-                    OpenContextualMenuAndRefresh();
-                    LookForRefreshDialog();
-                    WaitForRefreshToFinish();
-
-                    if (!RefreshSuccess()) return;
-
-                    selectedFieldsUpdatedCounter += 1;
-                    if (selectedFieldsUpdatedCounter == selectedFieldsCounter) return;
-                }
-
-                if (fieldSelected)
-                {
-                    WaitForWorkingDialog();
-                }
-
-                treeElementNode = TreeWalker.ControlViewWalker.GetNextSibling(treeElementNode);
-            } while (treeElementNode != null);
-        }
-
-        private void GetTreeContainer()
-        {
-            do
-            {
-                treeContainer = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.ClassNameProperty, "cdk-tree"));
-                treeElementNode = treeContainer == null ? null : TreeWalker.ControlViewWalker.GetFirstChild(treeContainer);
-            } while (treeContainer == null && treeElementNode == null);
-        }
-        private void GetSelectedFields(ref string selectedFields, ref int selectedFieldsCounter)
-        {
-            foreach (object checkedItem in chklModelFields.CheckedItems)
-            {
-                selectedFields += ((selectedFields != null) ? ";" : null) + checkedItem.ToString();
-                selectedFieldsCounter += 1;
-            }
-        }
-        private void GetSelectionItemPattern() => selectionItemPattern = (SelectionItemPattern)treeElementNode.GetCurrentPattern(SelectionItemPattern.Pattern);
-        private void GetApplicationWindowPattern()
-        {
-            Thread.Sleep(500);
-            windowPattern = (WindowPattern)pbi.GetCurrentPattern(WindowPattern.Pattern);
-            windowPattern.SetWindowVisualState(WindowVisualState.Maximized);
-        }
+        /// <summary>Opens/binds the file, lists its tables and handles the script visuals prompt.</summary>
         private bool GetFileData()
         {
-            String windowTitleFilename = null;
             txtOutput.Text = null;
+            cmdStartRefresh.Enabled = false;
+
+            RefreshOptions options = new RefreshOptions();
+            ApplyFormToOptions(options);
+            refresher = new PbiRefresher(options);
+            refresher.Log += (level, message) =>
+            {
+                if (level == LogLevel.Debug) return;
+                txtOutput.Text += (txtOutput.TextLength > 0 ? "\n" : string.Empty) + LogFormat.Line(DateTime.Now, level, message);
+            };
 
             try
             {
-                //Open or bind PBIX file  
-                OpenOrBindPbixFile(txtInput.Text, ref windowTitleFilename);
+                chklModelFields.Items.Clear();
+                foreach (string table in refresher.Open()) chklModelFields.Items.Add(table);
 
-                //Set reference to PowerBI application
-                SetPowerBIReference(windowTitleFilename);
-
-                //Getting fields/tables from model
-                FetchFieldsFromModel();
-
-                //Selecting field if needed
                 if (refreshModeCmd == "fields") SetModelFieldsFromArgs();
 
-                //Enable script visual if needed
-                checkScriptVisuals();
-
+                cmdStartRefresh.Enabled = true;
+                BringToFront();
+                Activate();
                 return true;
-                //do
-                //{
-                //    Thread.Sleep(500);
-                //    refreshDialog = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, REFRESH_DIALOG));
-                //    cancelRefreshButton = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.HelpTextProperty, CANCEL_REFRESH_BUTTON));
-                //} while (refreshDialog != null && cancelRefreshButton == null);
-
             }
             catch (Exception e)
             {
-                txtOutput.Text += "[FAILED]\nAn unexpected error has occurred: " + e.Message;
+                txtOutput.Text += "\nAn unexpected error has occurred: " + e.Message;
                 SetOutputLineColor(txtOutput.Lines.Length - 1, Color.Red);
                 return false;
             }
         }
 
-        private void checkScriptVisuals()
+        private void ApplyFormToOptions(RefreshOptions options)
         {
-            timeout = 0;
-            do
-            {
-                timeout += 1;
-                Thread.Sleep(1000);
-                enableScriptVisualsDialog = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, SCRIPT_VISUALS_DIALOG));
-            } while (enableScriptVisualsDialog == null && timeout < 4);
-
-            if (enableScriptVisualsDialog != null)
-            {
-                txtOutput.Text += "\nScript Visuals detected... ";
-
-                if (chkEnableScriptVisuals.Checked)
-                {
-                    enableScriptVisualsButton = enableScriptVisualsDialog.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, ENABLE_SCRIPT_VISUALS_BUTTON));
-                    invokePattern = (InvokePattern)enableScriptVisualsButton.GetCurrentPattern(InvokePattern.Pattern);
-                    invokePattern.Invoke();
-
-                    txtOutput.Text += "Enabled! [DONE]";
-                } else {
-                    if (!chkContinueRefresh.Checked)
-                    {
-                        throw new Exception("Visual scripts detected in the file. The application is not authorized to enable them, the process will be aborted.");
-                    } else
-                    {
-                        cancelScriptVisualsButton = enableScriptVisualsDialog.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, CANCEL_SCRIPT_VISUALS_BUTTON));
-                        invokePattern = (InvokePattern)cancelScriptVisualsButton.GetCurrentPattern(InvokePattern.Pattern);
-                        invokePattern.Invoke();
-                        txtOutput.Text += "Disabled [DONE]";
-                    }
-                }
-            }
-
+            options.FilePath = txtInput.Text;
+            options.OpenTimeoutSeconds = (int)numericTimeout.Value;
+            options.Language = englishAppLang.Checked ? "en" : "es";
+            options.Tables = chkRefreshAll.Checked
+                ? new List<string>()
+                : chklModelFields.CheckedItems.Cast<object>().Select(o => o.ToString()).ToList();
+            options.Workspace = chkPublish.Checked ? txtWorkspace.Text : null;
+            options.CloseFile = chkCloseFileOnFinish.Checked;
+            options.ScriptVisuals = chkEnableScriptVisuals.Checked ? ScriptVisualsAction.Enable
+                : chkContinueRefresh.Checked ? ScriptVisualsAction.Disable
+                : ScriptVisualsAction.Abort;
         }
 
         private bool GetAndStoreArguments()
@@ -347,103 +189,59 @@ namespace PowerRefresher
                         targetCmd = args[i].Replace("-target=", null);
                         break;
                     case 2:
-                        timeoutCmd = (int.Parse(args[i].Replace("-timeout=", null)) > 600) ? 600 : int.Parse(args[i].Replace("-timeout=", null));
+                        if (!int.TryParse(args[i].Replace("-timeout=", null), out timeoutCmd)) return false;
+                        timeoutCmd = Math.Min(timeoutCmd, 600);
                         break;
                     case 3:
-                        if (args[i].Replace("-refresh_mode=", null).ToLower() != "all" && args[i].Replace("-refresh_mode=", null).ToLower() != "fields") return false;
                         refreshModeCmd = args[i].Replace("-refresh_mode=", null).ToLower();
+                        if (refreshModeCmd != "all" && refreshModeCmd != "fields") return false;
                         break;
                     case 4:
-                        if (refreshModeCmd == "fields" && args[i].Replace("-fields=", null) == string.Empty) return false;
                         fieldsCmd = args[i].Replace("-fields=", null);
+                        if (refreshModeCmd == "fields" && fieldsCmd == string.Empty) return false;
                         break;
                     case 5:
-                        if (args[i].Replace("-publish=", null).ToLower() != "false" && args[i].Replace("-publish=", null).ToLower() != "true") return false;
-                        publishCmd = args[i].Replace("-publish=", null).ToLower() == "true";
+                        if (!TryParseBoolArg(args[i], "-publish=", out publishCmd)) return false;
                         break;
                     case 6:
-                        if (publishCmd && args[i] == null) return false;
                         workspaceNameCmd = publishCmd ? args[i].Replace("-workspace=", null) : null;
+                        if (publishCmd && string.IsNullOrEmpty(workspaceNameCmd)) return false;
                         break;
                     case 7:
-                        if (args[i].Replace("-enable_script_visuals=", null).ToLower() != "false" && args[i].Replace("-enable_script_visuals=", null).ToLower() != "true") return false;
-                        enableScriptVisualsCmd = args[i].Replace("-enable_script_visuals=", null).ToLower() == "true";
+                        if (!TryParseBoolArg(args[i], "-enable_script_visuals=", out enableScriptVisualsCmd)) return false;
                         break;
                     case 8:
-                        if (args[i].Replace("-sv_force_refresh=", null).ToLower() != "false" && args[i].Replace("-sv_force_refresh=", null).ToLower() != "true") return false;
-                        continueRefreshCmd = args[i].Replace("-sv_force_refresh=", null).ToLower() == "true";
+                        if (!TryParseBoolArg(args[i], "-sv_force_refresh=", out continueRefreshCmd)) return false;
                         break;
                     case 9:
-                        if (args[i].Replace("-closefile=", null).ToLower() != "false" && args[i].Replace("-closefile=", null).ToLower() != "true") return false;
-                        closeFileCmd = args[i].Replace("-closefile=", null).ToLower() == "true";
+                        if (!TryParseBoolArg(args[i], "-closefile=", out closeFileCmd)) return false;
                         break;
                     case 10:
-                        if (args[i].Replace("-closeapp=", null).ToLower() != "false" && args[i].Replace("-closeapp=", null).ToLower() != "true") return false;
-                        closeAppCmd = args[i].Replace("-closeapp=", null).ToLower() == "true";
+                        if (!TryParseBoolArg(args[i], "-closeapp=", out closeAppCmd)) return false;
                         break;
                     case 11:
-                        if (args[i].Replace("-pbi_lang=", null).ToLower() != "en" && args[i].Replace("-pbi_lang=", null).ToLower() != "es") return false;
                         pbiLangCmd = args[i].Replace("-pbi_lang=", null).ToLower();
+                        if (pbiLangCmd != "en" && pbiLangCmd != "es") return false;
                         break;
                 }
             }
             return true;
         }
-        private string GetSelectedFieldsForScript()
+        private static bool TryParseBoolArg(string arg, string prefix, out bool value)
         {
-            string fields = "[";
-            foreach (var item in chklModelFields.CheckedItems)
-            {
-                fields += (fields.Length > 1 ? "," : "") + item.ToString();
-            }
-            return fields += "]";
+            string raw = arg.Replace(prefix, null).ToLower();
+            value = raw == "true";
+            return raw == "true" || raw == "false";
         }
-        
-        private void SetPbiControlStringsByLang(string lang)
+        private bool IsValidArgs()
         {
-            switch (lang.ToLower())
+            string[] expected = { "target", "timeout", "refresh_mode", "fields", "publish", "workspace", "enable_script_visuals", "sv_force_refresh", "closefile", "closeapp", "pbi_lang" };
+            string[] args = Environment.GetCommandLineArgs();
+            for (int i = 0; i < expected.Length; i++)
             {
-                case "es":
-                    REFRESH_BUTTON = "refreshQueries";
-                    REFRESH_DIALOG = "modalDialog";
-                    CANCEL_REFRESH_BUTTON = "Cerrar";
-                    SAVE_BUTTON = "save";
-                    SAVE_WAIT_MESSAGE = "En proceso";
-                    PUBLISH_BUTTON = "publish";
-                    PUBLISH_GROUP_DIALOG = "KoPublishToGroupDialog";
-                    PUBLISH_DIALOG = "KoPublishDialog";
-                    WORKSPACE_CONTAINER = "list";
-                    SELECT_BUTTON = "Seleccionar";
-                    REPLACE_DIALOG = "KoPublishWithImpactViewDialog";
-                    REPLACE_BUTTON = "Reemplazar";
-                    SUCCESS_PUBLISH = "Entendido";
-                    REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
-                    SCRIPT_VISUALS_DIALOG = "MessageDialog";
-                    ENABLE_SCRIPT_VISUALS_BUTTON = "Habilitar";
-                    CANCEL_SCRIPT_VISUALS_BUTTON = "Cancelar";
-                    break;
-                case "en":
-                    REFRESH_BUTTON = "refreshQueries";
-                    REFRESH_DIALOG = "modalDialog";
-                    CANCEL_REFRESH_BUTTON = "Close";
-                    SAVE_BUTTON = "save";
-                    SAVE_WAIT_MESSAGE = "Working on it";
-                    PUBLISH_BUTTON = "publish";
-                    PUBLISH_GROUP_DIALOG = "KoPublishToGroupDialog";
-                    PUBLISH_DIALOG = "KoPublishDialog";
-                    WORKSPACE_CONTAINER = "list";
-                    SELECT_BUTTON = "Select";
-                    REPLACE_DIALOG = "KoPublishWithImpactViewDialog";
-                    REPLACE_BUTTON = "Replace";
-                    SUCCESS_PUBLISH = "Got it";
-                    REFRESH_CONTEXTUAL_MENU = "FieldListMenuItem_RefreshEntity";
-                    SCRIPT_VISUALS_DIALOG = "MessageDialog";
-                    ENABLE_SCRIPT_VISUALS_BUTTON = "Enable";
-                    CANCEL_SCRIPT_VISUALS_BUTTON = "Cancel";
-                    break;
-                default:
-                    break;
+                if (!args[i + 1].Contains(expected[i])) return false;
             }
+            return true;
         }
         private void SetModelFieldsFromArgs()
         {
@@ -453,46 +251,17 @@ namespace PowerRefresher
             {
                 for (int i = 0; i < chklModelFields.Items.Count; i++)
                 {
-                    if (chklModelFields.Items[i].ToString().ToLower() == field.ToLower()) chklModelFields.SetItemChecked(i, true);
+                    if (string.Equals(chklModelFields.Items[i].ToString(), field.Trim(), StringComparison.OrdinalIgnoreCase)) chklModelFields.SetItemChecked(i, true);
                 }
             }
 
             if (chklModelFields.CheckedItems.Count == 0) throw new Exception("Model fields passed by argument was not found.");
-        }
-        private void SetPowerBIReference(string windowTitleFilename)
-        {
-            timeout = 0;
-            desktop = AutomationElement.RootElement;
-            txtOutput.Text += "\nLooking for for PowerBI Application... ";
-
-            do
-            {
-                pbi = desktop.FindFirst(TreeScope.Children, new PropertyCondition(AutomationElement.NameProperty, windowTitleFilename));
-                timeout += 1;
-                Thread.Sleep(1000);
-            } while (pbi == null && timeout < numericTimeout.Value);
-
-            if (pbi == null)
-            {
-                throw new Exception("Failed to find PowerBI Application (timeout)");
-            }
-            else
-            {
-                txtOutput.Text += "[DONE]\n" +
-                    "[INFO] Found PowerBI application in " + timeout + " seconds (can be useful to help you to choose a correct timeout).";
-            }
-        }
-        private void SetOutputLineColor(int line, Color color)
-        {
-            txtOutput.Select(txtOutput.GetFirstCharIndexFromLine(line), txtOutput.TextLength);
-            txtOutput.SelectionColor = color;
         }
         private void SetFormValues()
         {
             txtInput.Text = targetCmd;
             englishAppLang.Checked = pbiLangCmd == "en";
             spanishAppLang.Checked = pbiLangCmd == "es";
-            SetPbiControlStringsByLang(pbiLangCmd);
             numericTimeout.Value = timeoutCmd;
             chkRefreshAll.Checked = refreshModeCmd == "all";
             chkEnableScriptVisuals.Checked = enableScriptVisualsCmd;
@@ -502,60 +271,135 @@ namespace PowerRefresher
             chkCloseFileOnFinish.Checked = closeFileCmd;
             chkCloseAppOnFinish.Checked = closeAppCmd;
         }
+
+        private void SetOutputLineColor(int line, Color color)
+        {
+            txtOutput.Select(txtOutput.GetFirstCharIndexFromLine(Math.Max(0, Math.Min(line, txtOutput.Lines.Length - 1))), txtOutput.TextLength);
+            txtOutput.SelectionColor = color;
+        }
         private void SetModelFieldsSelectionState(bool checkStatus)
         {
-            for (int i = 0; i < chklModelFields.Items.Count; i++) { chklModelFields.SetItemChecked(i, checkStatus); }
+            for (int i = 0; i < chklModelFields.Items.Count; i++) chklModelFields.SetItemChecked(i, checkStatus);
         }
         private void SetTextToClipboard(string text)
         {
-            if (text != "") Clipboard.SetText(text);
+            if (!string.IsNullOrEmpty(text)) Clipboard.SetText(text);
         }
 
+        /// <summary>Builds a PowerRefresherCli command line equivalent to the current form settings.</summary>
+        //Defaults written into generated scripts; the .bat explains each one so it can be edited
+        private const int SCRIPT_HANG_TIMEOUT_SECONDS = 300;
+        private const int SCRIPT_MAX_RUNTIME_MINUTES = 360;
+        private const int SCRIPT_RETRIES = 1;
+
+        //Local AppData: always writable, never redirected to a network share or synced by OneDrive (Documents often is on company PCs)
+        private static string ScriptLogFolder =>
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PowerRefresher", "Logs");
+
+        //Same folder as written in .bat files, so the script works for whichever user runs it
+        private const string ScriptLogFolderBatch = @"%LOCALAPPDATA%\PowerRefresher\Logs";
+
+        /// <summary>
+        /// Builds a PowerRefresherCli command equivalent to the current form settings, plus logging and hang
+        /// handling for unattended runs. Copies it to the clipboard and optionally saves a commented .bat.
+        /// </summary>
         private void GenerateScript()
         {
-            string commandLineScript = $"\"{Process.GetCurrentProcess().MainModule.FileName}\" -target=\"{txtInput.Text}\" ";
-            commandLineScript += $"-timeout={numericTimeout.Value} ";
-            commandLineScript += $"-refresh_mode={(chkRefreshAll.Checked ? "all" : "fields")} ";
-            commandLineScript += $"-fields=\"{(chkRefreshAll.Checked ? null : GetSelectedFieldsForScript())}\" ";
-            commandLineScript += $"-publish={chkPublish.Checked} ";
-            commandLineScript += $"-workspace=\"{(chkPublish.Checked ? txtWorkspace.Text : null)}\" ";
-            commandLineScript += $"-enable_script_visuals={chkEnableScriptVisuals.Checked} ";
-            commandLineScript += $"-sv_force_refresh={chkContinueRefresh.Checked} ";
-            commandLineScript += $"-closefile={chkCloseFileOnFinish.Checked} ";
-            commandLineScript += $"-closeapp={chkCloseAppOnFinish.Checked} ";
-            commandLineScript += $"-pbi_lang={(englishAppLang.Checked ? "en" : "es")}";
+            string cliPath = Path.Combine(AppContext.BaseDirectory, CLI_EXE_NAME);
+            List<string> parts = new List<string> { Quote(cliPath), Quote(txtInput.Text), $"--timeout {numericTimeout.Value}" };
+            if (!chkRefreshAll.Checked)
+            {
+                foreach (object table in chklModelFields.CheckedItems) parts.Add($"--table {Quote(table.ToString())}");
+            }
+            if (chkPublish.Checked) parts.Add($"--publish {Quote(txtWorkspace.Text)}");
+            if (chkEnableScriptVisuals.Checked) parts.Add("--script-visuals enable");
+            else if (chkContinueRefresh.Checked) parts.Add("--script-visuals disable");
+            if (!chkCloseFileOnFinish.Checked) parts.Add("--keep-open");
+            if (spanishAppLang.Checked) parts.Add("--lang es");
+            parts.Add($"--log {Quote(ScriptLogFolder)}");
+            parts.Add($"--hang-timeout {SCRIPT_HANG_TIMEOUT_SECONDS}");
+            parts.Add($"--max-runtime {SCRIPT_MAX_RUNTIME_MINUTES}");
+            parts.Add($"--retries {SCRIPT_RETRIES}");
 
-            SetTextToClipboard(commandLineScript);
+            SetTextToClipboard(string.Join(" ", parts));
             txtOutput.Text += "\n[INFO] Script was generated successfully and copied to clipboard.";
+            if (!File.Exists(cliPath)) txtOutput.Text += $"\n[WARN] {CLI_EXE_NAME} was not found next to this program; copy it there before running the script.";
 
             if (MessageBox.Show("Script was generated successfully and copied to clipboard!\n\nDo you want to save it into a batch file?",
                 "PowerRefresher: Script Generator", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
-                CreateBatchFile(commandLineScript);
+                CreateBatchFile(parts);
             }
         }
-        private void CreateBatchFile(string commandLineScript)
-        {
-            string filename = $@"{AppContext.BaseDirectory}\PowerRefresher_Script_{DateTime.Now:ddmmyyyy_HHmmss}.bat";
 
-            using (StreamWriter streamWriter = File.CreateText(filename))
+        /// <summary>Quotes a command-line value. Trailing backslashes are dropped: "C:\Logs\" would escape the closing quote.</summary>
+        private static string Quote(string value) => "\"" + (value ?? string.Empty).TrimEnd('\\') + "\"";
+
+        private void CreateBatchFile(List<string> parts)
+        {
+            string pbixName = Path.GetFileNameWithoutExtension(txtInput.Text);
+            SaveFileDialog dialog = new SaveFileDialog
             {
-                streamWriter.WriteLine($@"@echo off");
-                streamWriter.WriteLine($@"@REM Script auto-generated by PowerRefresher");
-                streamWriter.WriteLine($@"@REM PowerRefresher @ https://github.com/alefranzoni/power-refresher");
-                streamWriter.WriteLine($@"@REM Alejandro Franzoni Gimenez @ https://alejandrofranzoni.com.ar");
-                streamWriter.WriteLine($"\necho PowerRefresher @ Alejandro Franzoni Gimenez");
-                streamWriter.WriteLine($"echo https://github.com/alefranzoni/power-refresher");
-                streamWriter.WriteLine($"echo https://alejandrofranzoni.com.ar");
-                streamWriter.WriteLine($"echo.");
-                streamWriter.WriteLine($"echo Running, please wait...");
-                streamWriter.WriteLine($"echo.");
-                streamWriter.WriteLine($"\n{commandLineScript}");
+                Title = "Save refresh script",
+                Filter = "Batch files (*.bat)|*.bat",
+                FileName = $"Refresh {pbixName}.bat",
+                InitialDirectory = Path.GetDirectoryName(txtInput.Text),
+            };
+            if (dialog.ShowDialog() != DialogResult.OK) return;
+
+            string version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
+            using (StreamWriter w = new StreamWriter(dialog.FileName, false, new System.Text.UTF8Encoding(false)))
+            {
+                w.WriteLine("@echo off");
+                w.WriteLine($"REM Refreshes {Path.GetFileName(txtInput.Text)} with PowerRefresherCli.");
+                w.WriteLine($"REM Generated by PowerRefresher {version} on {DateTime.Now:yyyy-MM-dd HH:mm}. Edit the options below as needed.");
+                w.WriteLine("REM");
+                w.WriteLine("REM   --timeout       seconds to wait for Power BI to open the file");
+                w.WriteLine("REM   --log           folder for the run logs (one timestamped file per run)");
+                w.WriteLine("REM   --hang-timeout  seconds Power BI may stop responding before it is killed (0 = off)");
+                w.WriteLine("REM   --max-runtime   minutes the whole run may take before Power BI is killed (0 = off)");
+                w.WriteLine("REM   --retries       extra attempts after a hang or automation error (kills and reopens Power BI)");
+                w.WriteLine("REM   Run PowerRefresherCli --help for all options.");
+                w.WriteLine("REM");
+                w.WriteLine("REM Exit codes: 0 ok, 1 bad arguments, 2 refresh failed, 3 automation error,");
+                w.WriteLine("REM             4 Power BI hung or ran too long (it was killed),");
+                w.WriteLine("REM             5 skipped: a previous run on this file was still going,");
+                w.WriteLine("REM             6 no desktop: the task must run only when the user is logged on");
+                w.WriteLine("REM");
+                w.WriteLine("REM To schedule this yourself in Task Scheduler (Create Task, not Basic Task):");
+                w.WriteLine("REM   General:  \"Run only when user is logged on\" (Power BI needs your desktop)");
+                w.WriteLine("REM   Actions:  Start a program = this .bat file");
+                w.WriteLine("REM   Settings: \"Run task as soon as possible after a scheduled start is missed\"");
+                w.WriteLine($"REM             \"Stop the task if it runs longer than\" {SCRIPT_MAX_RUNTIME_MINUTES / 60 + 1} hours");
+                w.WriteLine("REM             \"If the task is already running\" = Do not start a new instance");
+                w.WriteLine();
+                //One option per line. "%" in values must be doubled inside batch files, except the log folder,
+                //which deliberately uses %LOCALAPPDATA% so it expands for whoever runs the script.
+                string logPart = $"--log {Quote(ScriptLogFolder)}";
+                IEnumerable<string> batchParts = parts.Select(p => p == logPart ? $"--log \"{ScriptLogFolderBatch}\"" : p.Replace("%", "%%"));
+                w.WriteLine(string.Join(" ^" + Environment.NewLine + "  ", batchParts));
+                w.WriteLine("exit /b %ERRORLEVEL%");
             }
 
-            txtOutput.Text += "\n[INFO] Script was saved successfully into a batch file on application directory.";
-            ShowMessage("Script saved successfully!", MessageBoxIcon.Information, "Script Generator");
-            OpenFile(AppContext.BaseDirectory);
+            txtOutput.Text += $"\n[INFO] Script saved to {dialog.FileName}";
+
+            if (MessageBox.Show($"Script saved to:\n{dialog.FileName}\n\nLogs will be written to:\n{ScriptLogFolder}\n\n" +
+                    "Create a Windows scheduled task to run it automatically?",
+                    "PowerRefresher: Script Generator", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+            {
+                return;
+            }
+
+            //The task's hard stop sits an hour above the script's own --max-runtime, so the script can stop cleanly and log why first
+            TimeSpan limit = TimeSpan.FromMinutes(SCRIPT_MAX_RUNTIME_MINUTES + 60);
+            using (frmSchedule schedule = new frmSchedule(dialog.FileName, pbixName, limit))
+            {
+                if (schedule.ShowDialog(this) != DialogResult.OK) return;
+                string next = ScheduledTask.NextRunTime(schedule.CreatedTaskName);
+                txtOutput.Text += $"\n[INFO] Scheduled task '{schedule.CreatedTaskName}' created" + (next != null ? $"; next run {next}" : string.Empty);
+                ShowMessage($"Scheduled task '{schedule.CreatedTaskName}' created." + (next != null ? $"\nNext run: {next}" : string.Empty) +
+                    "\n\nTo check it or run it now, open Task Scheduler (Task Scheduler Library).", MessageBoxIcon.Information, "Script Generator");
+            }
         }
         private void BrowseInputFile()
         {
@@ -575,208 +419,18 @@ namespace PowerRefresher
                 txtInput.Text = null;
             }
         }
-        private void SaveFile()
-        {
-            txtOutput.Text += "\nSaving... ";
-            do
-            {
-                saveButton = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, SAVE_BUTTON));
-            } while (saveButton == null);
-            invokePattern = (InvokePattern)saveButton.GetCurrentPattern(InvokePattern.Pattern);
-            invokePattern.Invoke();
-
-            Thread.Sleep(1500);
-
-            WaitForWorkingDialog();
-
-            txtOutput.Text += "[DONE]";
-        }
-        private void PublishFile()
-        {
-            try
-            {
-                txtOutput.Text += "\nPublishing... ";
-
-                //Publish button
-                do
-                {
-                    publishButton = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, PUBLISH_BUTTON));
-                } while (publishButton == null);
-
-                invokePattern = (InvokePattern)publishButton.GetCurrentPattern(InvokePattern.Pattern);
-                invokePattern.Invoke();
-
-                //Looking for publish dialog
-                do
-                {
-                    publishDialog = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, PUBLISH_GROUP_DIALOG));
-                } while (publishDialog == null);
-
-                //Fetching available workspaces
-                bool validWorkspace = false;
-                string targetWorkspaceInput = txtWorkspace.Text;
-                string targetWorkspace = null;
-                treeContainer = null;
-                treeElementNode = null;
-
-                do
-                {
-                    treeContainer = publishDialog.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.LocalizedControlTypeProperty, WORKSPACE_CONTAINER));
-                } while (treeContainer == null);
-
-                do
-                {
-                    treeElementNode = TreeWalker.ControlViewWalker.GetFirstChild(treeContainer);
-                } while (treeElementNode == null);
-
-                do
-                {
-                    if (treeElementNode.Current.Name.ToUpper() == targetWorkspaceInput.ToUpper())
-                    {
-                        validWorkspace = true;
-                        targetWorkspace = treeElementNode.Current.Name;
-                    }
-                    treeElementNode = TreeWalker.ContentViewWalker.GetNextSibling(treeElementNode);
-                } while (validWorkspace != true && treeElementNode != null);
-
-                //Checking workspace
-                if (!validWorkspace)
-                {
-                    txtOutput.Text += "[FAILED]";
-                    ShowMessage("The workspace is not valid. Check the output for details.", MessageBoxIcon.Error, "Publish error");
-                    throw new Exception("Workspace: " + targetWorkspace + " - Not found.\n");
-                }
-
-                //Select workspace
-                do
-                {
-                    targetWorkspaceElement = publishDialog.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, targetWorkspace));
-                } while (targetWorkspaceElement == null);
-                invokePattern = (InvokePattern)targetWorkspaceElement.GetCurrentPattern(InvokePattern.Pattern);
-                invokePattern.Invoke();
-
-                //Click on 'select' button to publish
-                do
-                {
-                    publishButton = publishDialog.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, SELECT_BUTTON));
-
-                } while (publishButton == null);
-                invokePattern = (InvokePattern)publishButton.GetCurrentPattern(InvokePattern.Pattern);
-                invokePattern.Invoke();
-
-                //Check for replace dialog
-                timeout = 0;
-                do
-                {
-                    timeout += 1;
-                    replaceDatasetDialog = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, REPLACE_DIALOG));
-                    Thread.Sleep(1000);
-                } while (replaceDatasetDialog == null && timeout <= 5);
-                if (replaceDatasetDialog != null)
-                {
-                    do
-                    {
-                        publishButton = replaceDatasetDialog.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, REPLACE_BUTTON));
-                    } while (publishButton == null);
-                    invokePattern = (InvokePattern)publishButton.GetCurrentPattern(InvokePattern.Pattern);
-                    invokePattern.Invoke();
-                }
-
-                //Look for publish dialog to finish
-                do
-                {
-                    publishDialog = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, PUBLISH_DIALOG));
-                } while (publishDialog == null);
-                do
-                {
-                    publishButton = publishDialog.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, SUCCESS_PUBLISH));
-                    Thread.Sleep(500);
-                } while (publishButton == null);
-                invokePattern = (InvokePattern)publishButton.GetCurrentPattern(InvokePattern.Pattern);
-                invokePattern.Invoke();
-
-                txtOutput.Text += "[DONE]";
-            }
-            catch (Exception e)
-            {
-                ShowMessage("An error has occurred trying to publish your file. Check output for details.", MessageBoxIcon.Error, "Publish error");
-                throw new Exception("An error has occurred trying to publish your file. " + e.Message + "\n");
-            }
-        }
-        private void CloseFile()
-        {
-            txtOutput.Text += "\nClosing... ";
-            pbi.SetFocus();
-            windowPattern = (WindowPattern)pbi.GetCurrentPattern(WindowPattern.Pattern);
-            windowPattern.Close();
-            txtOutput.Text += "[DONE]";
-        }
         private void CloseApplication()
         {
             CreateUpdateFileLog();
             Close();
         }
-        private void OpenContextualMenuAndRefresh()
+        private static void OpenFile(string path)
         {
-            /**
-             * There are two workarounds to do it:
-             * 1) Send right-click event to the ClickablePoint of each element node
-             * 2) Send the hotkey [Shift+F10] with a previous selected field/table
-             **/
-
-            GetSelectionItemPattern();
-            do
-            {
-                //pbi.SetFocus();
-                selectionItemPattern.Select();
-                selectionItemPattern.Select();
-                selectionItemPattern.Select();
-                SendKeys.Send("+{F10}");
-                Thread.Sleep(300);
-                refreshContextualMenu = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, REFRESH_CONTEXTUAL_MENU));
-            } while (refreshContextualMenu == null);
-
-            invokePattern = (InvokePattern)refreshContextualMenu.GetCurrentPattern(InvokePattern.Pattern);
-            invokePattern.Invoke();
-        }
-        private void OpenOrBindPbixFile(string filePath, ref string windowTitleFilename)
-        {
-            txtOutput.Text = "Trying to open or bind PBIX file... ";
-            windowTitleFilename = (filePath.Substring(filePath.LastIndexOf("\\") + 1) + " - Power BI Desktop").Replace(".pbix", "");
-
-            //Check if file is already open
-            var processList = Process.GetProcesses();
-            foreach (Process process in processList)
-            {
-                if (process.MainWindowTitle == windowTitleFilename)
-                {
-                    txtOutput.Text += "[DONE]";
-                    return;
-                }
-            }
-
-            //Open file
-            OpenFile(filePath, processWindowStyle: ProcessWindowStyle.Minimized);
-            txtOutput.Text += "[DONE]";
-        }
-        private void OpenFile(string filePath, bool useShellExec = true, ProcessWindowStyle processWindowStyle = ProcessWindowStyle.Normal)
-        {
-            var p = new Process();
-            p.StartInfo.FileName = filePath;
-            p.StartInfo.UseShellExecute = useShellExec;
-            p.StartInfo.WindowStyle = processWindowStyle;
-            p.Start();
-        }
-        private void OpenLink(string url)
-        {
-            var process = new Process();
-            process.StartInfo.FileName = url;
-            process.StartInfo.UseShellExecute = true;
-            process.Start();
+            Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
         }
         private void CreateUpdateFileLog()
         {
-            string filename = $@"{Environment.GetEnvironmentVariable("TMP")}\PowerRefresher_LogReport_{DateTime.Now:ddmmyyyy_HHmmss}.txt";
+            string filename = Path.Combine(Path.GetTempPath(), $"PowerRefresher_LogReport_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
 
             using (StreamWriter streamWriter = File.CreateText(filename))
             {
@@ -786,136 +440,6 @@ namespace PowerRefresher
             }
 
             OpenFile(filename);
-        }
-        private void WaitForWorkingDialog()
-        {
-            do
-            {
-                Thread.Sleep(1000);
-                saveDialog = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, SAVE_WAIT_MESSAGE));
-            } while (saveDialog != null);
-        }
-        private void WaitForRefreshToFinish()
-        {
-            txtOutput.Text += "\nRefresh in progress... ";
-            do
-            {
-                Thread.Sleep(500);
-                refreshDialog = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, REFRESH_DIALOG));
-                cancelRefreshButton = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.HelpTextProperty, CANCEL_REFRESH_BUTTON));
-            } while (refreshDialog != null && cancelRefreshButton == null);
-            txtOutput.Text += "[DONE]";
-        }
-
-        private void chkEnableScriptVisuals_CheckedChanged(object sender, EventArgs e)
-        {
-            chkContinueRefresh.Enabled = !chkEnableScriptVisuals.Checked;
-        }
-
-        private void LookForRefreshDialog()
-        {
-            try
-            {
-                txtOutput.Text += "\nLooking for refresh dialog... ";
-                timeout = 0;
-                do
-                {
-                    timeout += 1;
-                    Thread.Sleep(100);
-                    refreshDialog = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, REFRESH_DIALOG));
-                } while (refreshDialog == null && timeout <= 15);
-                txtOutput.Text += "[DONE]";
-            }
-            catch (Exception e)
-            {
-                ShowMessage("An error has occurred looking for refresh dialog. Check output for details.", MessageBoxIcon.Error, "Refresh error");
-                throw new Exception("An error has occurred looking for refresh dialog. " + e.Message + "\n");
-            }
-        }
-        private void PressModelRefreshButton()
-        {
-            try
-            {
-                txtOutput.Text += "\nTrying to refresh all queries...";
-                timeout = 0;
-                do
-                {
-                    timeout += 1;
-                    Thread.Sleep(500);
-                    refreshButton = pbi.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.AutomationIdProperty, REFRESH_BUTTON));
-                } while (refreshButton == null && timeout <= 4);
-                invokePattern = (InvokePattern)refreshButton.GetCurrentPattern(InvokePattern.Pattern);
-                invokePattern.Invoke();
-            }
-            catch (Exception e)
-            {
-                ShowMessage("An error has occurred trying to invoke refresh button. Check output for details.", MessageBoxIcon.Error, "Refresh error");
-                throw new Exception("An error has occurred trying to invoke refresh button. " + e.Message + "\n");
-            }
-        }
-
-        private void FetchFieldsFromModel()
-        {
-            txtOutput.Text += "\nFetching fields from PowerBI model... ";
-
-            GetTreeContainer();
-
-            chklModelFields.Items.Clear();
-
-            do
-            {
-                chklModelFields.Items.Add(treeElementNode.Current.Name);
-                treeElementNode = TreeWalker.ControlViewWalker.GetNextSibling(treeElementNode);
-            } while (treeElementNode != null);
-
-            cmdStartRefresh.Enabled = true;
-            txtOutput.Text += "[DONE]";
-            BringToFront();
-            Activate();
-        }
-        private bool IsValidArgs()
-        {
-            string[] args = Environment.GetCommandLineArgs();
-            for (int i = 1; i < 11; i++)
-            {
-                switch (i)
-                {
-                    case 1:
-                        if (!args[i].Contains("target")) return false;
-                        break;
-                    case 2:
-                        if (!args[i].Contains("timeout")) return false;
-                        break;
-                    case 3:
-                        if (!args[i].Contains("refresh_mode")) return false;
-                        break;
-                    case 4:
-                        if (!args[i].Contains("fields")) return false;
-                        break;
-                    case 5:
-                        if (!args[i].Contains("publish")) return false;
-                        break;
-                    case 6:
-                        if (!args[i].Contains("workspace")) return false;
-                        break;
-                    case 7:
-                        if (!args[i].Contains("enable_script_visuals")) return false;
-                        break;
-                    case 8:
-                        if (!args[i].Contains("sv_force_refresh")) return false;
-                        break;
-                    case 9:
-                        if (!args[i].Contains("closefile")) return false;
-                        break;
-                    case 10:
-                        if (!args[i].Contains("closeapp")) return false;
-                        break;
-                    case 11:
-                        if (!args[i].Contains("pbi_lang")) return false;
-                        break;
-                }
-            }
-            return true;
         }
         private void ShowMessage(string message, MessageBoxIcon icon, string title = null)
         {
@@ -951,9 +475,8 @@ namespace PowerRefresher
                 ShowMessage("You must select at least one field to refresh!", MessageBoxIcon.Exclamation, "Selection missing");
                 return false;
             }
-            
+
             return true;
         }
-        private bool RefreshSuccess() => (refreshDialog == null); //Success -> refreshDialog = null | Failure -> cancelRefreshButton != null
     }
 }

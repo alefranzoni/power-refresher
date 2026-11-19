@@ -92,8 +92,91 @@ Simply, you have to execute the program and set all the options shown in the use
 
 <p align="right">(<a href="#top">↑ Top</a>)</p>
 
-### Command Line Arguments
-Run the **PowerRefresher** application by passing the following arguments:
+### Command Line (PowerRefresherCli)
+For unattended runs (Task Scheduler, CI agents, batch files) use `PowerRefresherCli.exe`, which is built next to `PowerRefresher.exe`. It prints progress to the console, never shows dialogs, and returns an exit code you can check.
+
+```batchfile
+PowerRefresherCli <file.pbix> [options]
+```
+| Option                       | Description                                                                 |
+|------------------------------|-----------------------------------------------------------------------------|
+|`--table <name>`              |Refresh only this table; repeat for several. Default: refresh the whole model |
+|`--publish <workspace>`       |Publish to this workspace after refreshing                                   |
+|`--timeout <seconds>`         |How long to wait for Power BI to open the file (default 300)                 |
+|`--script-visuals <mode>`     |`abort` (default), `enable` or `disable` when Power BI asks about R/Python visuals |
+|`--keep-open`                 |Leave the file open when done (default: close it)                           |
+|`--lang <en\|es>`             |Power BI Desktop UI language (default `en`)                                  |
+|`--list-tables`               |Print the model's table names and exit                                       |
+|`--diagnose`                  |Check every Power BI UI element the tool relies on, without refreshing or saving. With `--publish <workspace>` it also opens the publish dialog, checks the workspace is listed, and cancels (nothing is uploaded) |
+|`--dump-ui [file]`            |With `--diagnose` (implied): also write Power BI's UI structure (control types, ids, labels; no model data) to a text file, by default in the log folder. Useful when `--diagnose` reports MISSING elements |
+|`--log <path>`                |Append a detailed, timestamped log to this file; if it's a folder (no extension), one file per run. Write folders without a trailing backslash |
+|`--hang-timeout <seconds>`    |Kill Power BI if its window stops responding this long (default 300, 0 = off) |
+|`--max-runtime <minutes>`     |Kill Power BI and stop if the whole run takes longer (default 360, 0 = off) |
+|`--retries <n>`               |After a hang or automation error, kill Power BI and try again up to n times (default 0) |
+|`--log-keep-days <days>`      |In a log folder, delete run logs older than this (default 30, 0 = keep all) |
+|`-v`, `--verbose`             |Also show debug detail on the console (the log file always has it)          |
+|`-q`, `--quiet`               |Print errors only                                                            |
+
+| Exit code | Meaning                                                              |
+|-----------|----------------------------------------------------------------------|
+| `0`       | Success                                                              |
+| `1`       | Bad arguments (unknown option, missing file, table not in model)      |
+| `2`       | Power BI reported that the refresh failed (its error text is logged) |
+| `3`       | Automation error (UI element not found, publish failed); for `--diagnose`, an element is missing |
+| `4`       | Power BI hung or the run exceeded `--max-runtime`; Power BI was killed |
+| `5`       | Skipped: another run on the same file was still in progress          |
+| `6`       | No interactive desktop: the scheduled task must run only when the user is logged on |
+
+#### Examples
+```batchfile
+PowerRefresherCli "C:\Reports\Sales.pbix" --log "C:\Logs"
+PowerRefresherCli "C:\Reports\Sales.pbix" --table Orders --table Customers --retries 1
+PowerRefresherCli "C:\Reports\Sales.pbix" --publish "Finance Reports" --timeout 600
+PowerRefresherCli "C:\Reports\Sales.pbix" --diagnose
+```
+
+#### Logs
+Every line has a date, time and level, and every step records how long it took:
+```
+2026-11-18 16:50:10.984  INFO   PowerRefresherCli 2.1.0 started: refresh all tables
+2026-11-18 16:50:10.985  INFO   File: C:\Reports\Sales.pbix (26.4 KB, last modified 2026-11-18 16:50:08)
+2026-11-18 16:50:19.233  INFO   Found Power BI window after 8.2s (pid 27680, Power BI Desktop 2.159.1231.0)
+2026-11-18 16:50:25.857  INFO   Refresh all tables...
+2026-11-18 16:50:30.788  INFO   Refresh all tables: done in 4.9s
+2026-11-18 16:50:33.636  INFO   Save file: done in 2.8s
+2026-11-18 16:50:33.890  INFO   File after run: 26.3 KB, last modified 2026-11-18 16:50:31 (saved)
+2026-11-18 16:50:33.890  INFO   Finished in 22.9s. Result: SUCCESS (exit code 0)
+```
+The log file also records the command line, machine and user, the Power BI version and process id, debug detail, and Power BI's own error text when a refresh fails.
+
+If Power BI finds an element only by a fallback lookup (its UI has changed but the run still works), the log gets a `WARN` line saying so. Run `--diagnose` to see exactly what changed.
+
+### Scheduling unattended refreshes
+The easiest way: in the GUI, open the file, choose your options, click `Generate Script`, save the `.bat`, and answer **Yes** when asked to create a scheduled task. Pick the days and time; the task is created with the settings below.
+
+To set it up yourself in Task Scheduler, use **Create Task** (not Basic Task) with:
+
+| Setting | Value | Why |
+|---------|-------|-----|
+| General: security options | **Run only when user is logged on** | Power BI Desktop is driven through its UI and needs your desktop. "Run whether user is logged on or not" has no desktop; runs exit with code `6`. |
+| Actions | Start a program: your `.bat` file | The `.bat` from `Generate Script` already passes `--log`, `--hang-timeout`, `--max-runtime` and `--retries`. |
+| Settings: run as soon as possible after a missed start | On | A run missed while the PC was off or asleep happens when it's back. |
+| Settings: stop the task if it runs longer than | 7 hours | Last-resort safety net above the script's own `--max-runtime` (6 hours). |
+| Settings: if the task is already running | Do not start a new instance | Overlapping runs would fight over the Power BI window (the CLI also refuses with exit code `5`). |
+| Conditions: start only if on AC power | Off | Laptops on battery would otherwise skip runs. |
+
+How runs recover from problems, so one bad run doesn't break the next:
+- If the file is already open, a healthy Power BI window is reused. A window that is hung, blocked by a dialog, or left showing a refresh or publish dialog is killed and the file reopened.
+- A failed run closes the Power BI it opened; the error, including Power BI's own message for refresh failures, is in the log.
+- If Power BI won't close after saving (for example an unsaved-changes prompt), it is killed; the saved file is not affected.
+- The session state (console or remote, locked or not) is logged. Locked sessions usually still work; disconnected Remote Desktop sessions can make Power BI's UI disappear, so prefer a console session or keep Remote Desktop connected.
+
+Check results in Task Scheduler's **Last Run Result** column (the exit code) and in the log folder: `%LOCALAPPDATA%\PowerRefresher\Logs` for generated scripts (paste that into File Explorer's address bar). If a `--log` location can't be written, for example a locked-down folder or a redirected Documents folder, the log goes there too and the run continues.
+
+> **Note**: Power BI Desktop is driven through its UI, so runs need a logged-in, unlocked Windows session. The GUI's `Generate Script` button now produces a `PowerRefresherCli` command.
+
+### Legacy Command Line Arguments
+The GUI executable still accepts the original positional arguments, so existing scripts keep working. Run the **PowerRefresher** application by passing the following arguments:
 
 ```batchfile
 -target=path -timeout=180 -refresh_mode=all/fields -fields="[field1,fieldN]" -publish=bool -workspace=name -enable_script_visuals=bool -sv_force_refresh=bool -closefile=bool -closeapp=bool -pbi_lang=en/es
@@ -117,7 +200,6 @@ Run the **PowerRefresher** application by passing the following arguments:
 -target="C:\Users\MyUser\Desktop\My File.pbix" -timeout=180 -refresh_mode=fields -fields="[Table1,Table2]" -publish=true -workspace="My workspace" -enable_script_visuals=false -sv_force_refresh=true -closefile=true -closeapp=true -pbi_lang=en
 ```
 
-> **Note**: *Remember that you can generate the script from the* `Generate Script` *button.*
 <p align="right">(<a href="#top">↑ Top</a>)</p>
 
 <!-- ROADMAP -->

@@ -1,0 +1,52 @@
+name: Release
+
+# Push a version tag (e.g. "2.0", "2.0.1") to build both executables and publish a GitHub release.
+on:
+  push:
+    tags:
+      - "[0-9]*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and release"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Build
+        run: msbuild PowerRefresher.sln /p:Configuration=Release /t:Rebuild /v:m /nologo
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $out = "PowerRefresher-$env:TAG"
+          New-Item -ItemType Directory $out | Out-Null
+          Copy-Item bin\Release\PowerRefresher.exe, bin\Release\PowerRefresher.exe.config, bin\Release\PowerRefresherCli.exe, LICENSE.txt $out
+          Compress-Archive -Path "$out\*" -DestinationPath "$out.zip"
+          Get-ChildItem $out
+
+      - name: Publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $zip = "PowerRefresher-$env:TAG.zip"
+          gh release view $env:TAG *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:TAG $zip --clobber
+          } else {
+            gh release create $env:TAG $zip --title "PowerRefresher $env:TAG" --generate-notes
+          }
