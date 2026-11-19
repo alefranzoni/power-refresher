@@ -33,6 +33,10 @@ What to do:
                            Power BI update, or when a run fails with a timeout.
                            Add --publish <workspace> to also check the publish dialog:
                            it is opened, checked and cancelled; nothing is uploaded.
+  --dump-ui [file]         With --diagnose (implied): also write Power BI's UI structure
+                           (control types, ids, labels; no model data) to a text file, by
+                           default in the log folder. Send it when --diagnose reports
+                           MISSING elements on your Power BI version.
 
 Logging:
   --log <path>             Append a detailed, timestamped log of the run to this file.
@@ -331,6 +335,17 @@ Examples:
         /// <summary>One attempt. Returns an exit code for outcomes that are not exceptions.</summary>
         private static int RunOnce(CliArgs cli, PbiRefresher refresher, RunLogger logger)
         {
+            if (cli.Diagnose)
+            {
+                //Only the window is needed, so this still reports (and dumps) when reading the table list would fail
+                refresher.OpenWindow();
+                IReadOnlyList<DiagnosticResult> results = refresher.Diagnose();
+                PrintDiagnosis(results);
+                if (cli.DumpUi) DumpUi(cli, refresher, logger);
+                CloseIfOpenedByUs(refresher, logger);
+                return results.Any(r => r.Status == DiagnosticStatus.Missing) ? EXIT_AUTOMATION_ERROR : EXIT_OK;
+            }
+
             IReadOnlyList<string> tables = refresher.Open();
 
             if (cli.ListTables)
@@ -340,13 +355,6 @@ Examples:
                 return EXIT_OK;
             }
 
-            if (cli.Diagnose)
-            {
-                IReadOnlyList<DiagnosticResult> results = refresher.Diagnose();
-                PrintDiagnosis(results);
-                CloseIfOpenedByUs(refresher, logger);
-                return results.Any(r => r.Status == DiagnosticStatus.Missing) ? EXIT_AUTOMATION_ERROR : EXIT_OK;
-            }
 
             try
             {
@@ -362,6 +370,26 @@ Examples:
 
             refresher.Run();
             return EXIT_OK;
+        }
+
+        private static void DumpUi(CliArgs cli, PbiRefresher refresher, RunLogger logger)
+        {
+            string folder = logger.LogFolder ?? (logger.FilePath != null ? Path.GetDirectoryName(logger.FilePath) : FallbackLogFolder);
+            string path = cli.DumpUiPath ??
+                Path.Combine(folder, $"PowerRefresher_{DateTime.Now:yyyyMMdd_HHmmss}_{Path.GetFileNameWithoutExtension(cli.Options.FilePath)}_ui.txt");
+            try
+            {
+                string fullPath = Path.GetFullPath(path);
+                Directory.CreateDirectory(Path.GetDirectoryName(fullPath));
+                refresher.DumpUi(fullPath);
+                Console.WriteLine($"  UI dump written to {fullPath}");
+                Console.WriteLine("  It lists Power BI's controls and their labels (no model data). Labels can include visible");
+                Console.WriteLine("  report text such as titles and table names: skim it before sharing.");
+            }
+            catch (Exception e) when (IsLogFileError(e))
+            {
+                logger.Write(LogLevel.Error, $"Could not write the UI dump to '{path}': {e.Message}");
+            }
         }
 
         private static void CloseIfOpenedByUs(PbiRefresher refresher, RunLogger logger)
@@ -462,8 +490,8 @@ Examples:
         private sealed class CliArgs
         {
             public RefreshOptions Options = new RefreshOptions();
-            public bool Help, Quiet, Verbose, ListTables, Diagnose;
-            public string LogPath;
+            public bool Help, Quiet, Verbose, ListTables, Diagnose, DumpUi;
+            public string LogPath, DumpUiPath;
             public TimeSpan HangTimeout = TimeSpan.FromSeconds(300);
             public TimeSpan MaxRuntime = TimeSpan.FromMinutes(360);
             public int Retries;
@@ -523,6 +551,15 @@ Examples:
                         break;
                     case "--diagnose":
                         cli.Diagnose = true;
+                        break;
+                    case "--dump-ui":
+                        //Optional path: "--dump-ui" alone writes next to the log
+                        cli.Diagnose = cli.DumpUi = true;
+                        if (inlineValue != null || (i + 1 < args.Length && !args[i + 1].StartsWith("-") && !args[i + 1].EndsWith(".pbix", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            TakeValue(out v);
+                            cli.DumpUiPath = v;
+                        }
                         break;
                     case "--keep-open":
                         cli.Options.CloseFile = false;

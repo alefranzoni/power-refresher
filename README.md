@@ -108,6 +108,7 @@ PowerRefresherCli <file.pbix> [options]
 |`--lang <en\|es>`             |Power BI Desktop UI language (default `en`)                                  |
 |`--list-tables`               |Print the model's table names and exit                                       |
 |`--diagnose`                  |Check every Power BI UI element the tool relies on, without refreshing or saving. With `--publish <workspace>` it also opens the publish dialog, checks the workspace is listed, and cancels (nothing is uploaded) |
+|`--dump-ui [file]`            |With `--diagnose` (implied): also write Power BI's UI structure (control types, ids, labels; no model data) to a text file, by default in the log folder. Useful when `--diagnose` reports MISSING elements |
 |`--log <path>`                |Append a detailed, timestamped log to this file; if it's a folder (no extension), one file per run. Write folders without a trailing backslash |
 |`--hang-timeout <seconds>`    |Kill Power BI if its window stops responding this long (default 300, 0 = off) |
 |`--max-runtime <minutes>`     |Kill Power BI and stop if the whole run takes longer (default 360, 0 = off) |

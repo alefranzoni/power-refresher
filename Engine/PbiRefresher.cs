@@ -70,13 +70,7 @@ namespace PowerRefresher.Engine
         /// <summary>Opens the file in Power BI Desktop (or binds to its open window), reads the table list and handles the script visuals prompt.</summary>
         public IReadOnlyList<string> Open()
         {
-            Init();
-            if (string.IsNullOrWhiteSpace(Options.FilePath)) throw new AutomationException("No .pbix file given.");
-            if (!File.Exists(Options.FilePath)) throw new AutomationException($"File not found: {Options.FilePath}");
-
-            string fileBaseName = Path.GetFileNameWithoutExtension(Options.FilePath);
-            Step("Open file in Power BI", () => OpenOrBindPbixFile(fileBaseName));
-            Step("Wait for Power BI window", () => FindPowerBIWindow(fileBaseName));
+            OpenWindow();
             Step("Read table list", () =>
             {
                 Tables = FetchTables();
@@ -84,6 +78,75 @@ namespace PowerRefresher.Engine
             });
             HandleScriptVisuals();
             return Tables;
+        }
+
+        /// <summary>
+        /// Opens the file in Power BI Desktop (or binds to a healthy window that has it open) and waits for the window,
+        /// without reading anything from it. <see cref="Open"/> does this first; <see cref="Diagnose"/> and
+        /// <see cref="DumpUi"/> only need this, so they still work when reading the table list fails.
+        /// </summary>
+        public void OpenWindow()
+        {
+            Init();
+            if (string.IsNullOrWhiteSpace(Options.FilePath)) throw new AutomationException("No .pbix file given.");
+            if (!File.Exists(Options.FilePath)) throw new AutomationException($"File not found: {Options.FilePath}");
+
+            string fileBaseName = Path.GetFileNameWithoutExtension(Options.FilePath);
+            Step("Open file in Power BI", () => OpenOrBindPbixFile(fileBaseName));
+            Step("Wait for Power BI window", () => FindPowerBIWindow(fileBaseName));
+        }
+
+        /// <summary>
+        /// Writes the UI Automation tree of every top-level window of the Power BI instance (indented by depth: type, id,
+        /// name, class) to a text file, for working out what a Power BI version calls its controls. Contains UI labels,
+        /// which can include visible report text, but no model data. Call after <see cref="OpenWindow"/>.
+        /// </summary>
+        public int DumpUi(string path, int maxNodes = 30000)
+        {
+            if (pbi == null) throw new InvalidOperationException("Call OpenWindow() before DumpUi().");
+            int pid = ProcessId;
+            int count = 0;
+            using (StreamWriter w = new StreamWriter(path, false, new System.Text.UTF8Encoding(false)))
+            {
+                w.WriteLine($"PowerRefresher UI dump, {DateTime.Now:yyyy-MM-dd HH:mm:ss}, Power BI Desktop {GetPowerBIVersion(pid)}, pid {pid}");
+                w.WriteLine("Format: depth-indented  type | id | name | class   (names truncated to 100 characters)");
+                foreach (AutomationElement top in AutomationElement.RootElement.FindAll(TreeScope.Children, new PropertyCondition(AutomationElement.ProcessIdProperty, pid)))
+                {
+                    w.WriteLine();
+                    DumpNode(w, top, 0, ref count, maxNodes);
+                }
+                if (count >= maxNodes) w.WriteLine($"... stopped after {maxNodes} elements");
+            }
+            Info($"Wrote {count} UI elements to {path}");
+            return count;
+        }
+
+        private static void DumpNode(StreamWriter w, AutomationElement e, int depth, ref int count, int maxNodes)
+        {
+            if (count >= maxNodes || depth > 80) return;
+            count++;
+            try
+            {
+                AutomationElement.AutomationElementInformation c = e.Current;
+                string name = (c.Name ?? string.Empty).Replace("\r", " ").Replace("\n", " ");
+                if (name.Length > 100) name = name.Substring(0, 100) + "...";
+                w.WriteLine($"{new string(' ', depth * 2)}{c.LocalizedControlType} | {c.AutomationId} | {name} | {c.ClassName}{(c.IsOffscreen ? " | offscreen" : string.Empty)}");
+            }
+            catch (ElementNotAvailableException)
+            {
+                return;
+            }
+            for (AutomationElement child = SafeWalk(() => TreeWalker.ControlViewWalker.GetFirstChild(e)); child != null && count < maxNodes;
+                 child = SafeWalk(() => TreeWalker.ControlViewWalker.GetNextSibling(child)))
+            {
+                DumpNode(w, child, depth + 1, ref count, maxNodes);
+            }
+        }
+
+        private static AutomationElement SafeWalk(Func<AutomationElement> step)
+        {
+            try { return step(); }
+            catch (ElementNotAvailableException) { return null; }
         }
 
         /// <summary>Checks the requested tables exist in the model. Call after <see cref="Open"/>; throws AutomationException listing what is available.</summary>
@@ -189,18 +252,21 @@ namespace PowerRefresher.Engine
         /// </summary>
         public IReadOnlyList<DiagnosticResult> Diagnose()
         {
-            if (pbi == null) throw new InvalidOperationException("Call Open() before Diagnose().");
+            if (pbi == null) throw new InvalidOperationException("Call OpenWindow() before Diagnose().");
             Init();
             List<DiagnosticResult> results = new List<DiagnosticResult>();
             currentStep = "Diagnose";
+
+            //The field list only appears once the model has loaded; wait for it, but keep checking everything else if it never shows
+            Info($"Waiting up to {Options.OpenTimeoutSeconds}s for the field list (it appears once the model has loaded)...");
+            AutomationElement node = Safe(() => FirstTableNode(Options.OpenTimeoutSeconds));
+            if (node == null) Warn("Field list not found. Check that the Data (Fields) pane is open and expanded in Report view.");
 
             results.Add(new DiagnosticResult("Power BI window", DiagnosticStatus.Ok, $"pid {ProcessId}, title '{Safe(() => pbi.Current.Name)}'"));
             results.Add(Check(loc.FieldTree, pbi));
             results.Add(Check(loc.RefreshButton, pbi));
             results.Add(Check(loc.SaveButton, pbi));
             results.Add(Check(loc.PublishButton, pbi));
-
-            AutomationElement node = Safe(() => FirstTableNode(5));
             if (node == null)
             {
                 results.Add(new DiagnosticResult("Table name", DiagnosticStatus.Missing, "no table found in the field list"));
