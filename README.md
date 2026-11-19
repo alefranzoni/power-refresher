@@ -170,7 +170,7 @@ How runs recover from problems, so one bad run doesn't break the next:
 - If Power BI won't close after saving (for example an unsaved-changes prompt), it is killed; the saved file is not affected.
 - The session state (console or remote, locked or not) is logged. Locked sessions usually still work; disconnected Remote Desktop sessions can make Power BI's UI disappear, so prefer a console session or keep Remote Desktop connected.
 
-Check results in Task Scheduler's **Last Run Result** column (the exit code) and in the log folder (`Documents\PowerRefresher\Logs` for generated scripts).
+Check results in Task Scheduler's **Last Run Result** column (the exit code) and in the log folder: `%LOCALAPPDATA%\PowerRefresher\Logs` for generated scripts (paste that into File Explorer's address bar). If a `--log` location can't be written, for example a locked-down folder or a redirected Documents folder, the log goes there too and the run continues.
 
 > **Note**: Power BI Desktop is driven through its UI, so runs need a logged-in, unlocked Windows session. The GUI's `Generate Script` button now produces a `PowerRefresherCli` command.
 

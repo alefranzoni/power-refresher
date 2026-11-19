@@ -39,6 +39,8 @@ Logging:
                            If <path> is a folder (or has no extension), each run gets its
                            own file in it, e.g. PowerRefresher_20261118_163001_Sales.log
                            Write folders without a trailing backslash: ""C:\Logs""
+                           If it can't be written, the log goes to
+                           %LOCALAPPDATA%\PowerRefresher\Logs instead and the run continues.
   --log-keep-days <days>   In a log folder, delete run logs older than this. Default: 30.
                            0 keeps everything. A single named log file is never pruned.
   -v, --verbose            Also show debug detail on the console (the log file always has it).
@@ -104,21 +106,11 @@ Examples:
             LogLevel consoleLevel = cli.Quiet || cli.ListTables ? LogLevel.Error : cli.Verbose ? LogLevel.Debug : LogLevel.Info;
             using (RunLogger logger = new RunLogger(consoleLevel))
             {
-                if (cli.LogPath != null)
-                {
-                    try
-                    {
-                        logger.OpenFile(cli.LogPath, cli.Options.FilePath, started);
-                    }
-                    catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException || e is NotSupportedException)
-                    {
-                        Console.Error.WriteLine($"error: can't write log file '{cli.LogPath}': {e.Message}");
-                        return EXIT_USAGE;
-                    }
-                }
+                string logProblem = cli.LogPath == null ? null : OpenLogWithFallback(logger, cli, started);
 
                 FileSnapshot before = FileSnapshot.Of(cli.Options.FilePath);
                 WriteHeader(logger, cli, args, before);
+                if (logProblem != null) logger.Write(LogLevel.Warn, logProblem);
                 Stopwatch runClock = Stopwatch.StartNew();
 
                 int deleted = logger.PruneOldLogs(cli.LogKeepDays);
@@ -137,6 +129,43 @@ Examples:
                 return exitCode;
             }
         }
+
+        /// <summary>Folder used when the requested log location can't be written: always local, writable and never synced.</summary>
+        private static string FallbackLogFolder =>
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PowerRefresher", "Logs");
+
+        /// <summary>
+        /// Opens the requested log; if it can't be written (locked-down folders, redirected Documents, bad path), logs to
+        /// <see cref="FallbackLogFolder"/> instead so a scheduled refresh still runs and is still recorded.
+        /// Returns a warning to put in the log, or null if the requested location worked.
+        /// </summary>
+        private static string OpenLogWithFallback(RunLogger logger, CliArgs cli, DateTime started)
+        {
+            string reason;
+            try
+            {
+                logger.OpenFile(cli.LogPath, cli.Options.FilePath, started);
+                return null;
+            }
+            catch (Exception e) when (IsLogFileError(e))
+            {
+                reason = e.Message;
+            }
+
+            try
+            {
+                logger.OpenFile(FallbackLogFolder, cli.Options.FilePath, started);
+                return $"Can't write the log to '{cli.LogPath}' ({reason}); logging to {logger.FilePath} instead.";
+            }
+            catch (Exception e) when (IsLogFileError(e))
+            {
+                logger.Write(LogLevel.Warn, $"Can't write the log to '{cli.LogPath}' ({reason}) or to {FallbackLogFolder} ({e.Message}); continuing with console output only.");
+                return null;
+            }
+        }
+
+        private static bool IsLogFileError(Exception e) =>
+            e is IOException || e is UnauthorizedAccessException || e is ArgumentException || e is NotSupportedException || e is System.Security.SecurityException;
 
         /// <summary>Fails fast where Power BI can't be automated; warns about session states known to cause trouble.</summary>
         private static int CheckSession(RunLogger logger)

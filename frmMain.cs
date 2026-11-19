@@ -292,8 +292,12 @@ namespace PowerRefresher
         private const int SCRIPT_MAX_RUNTIME_MINUTES = 360;
         private const int SCRIPT_RETRIES = 1;
 
+        //Local AppData: always writable, never redirected to a network share or synced by OneDrive (Documents often is on company PCs)
         private static string ScriptLogFolder =>
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "PowerRefresher", "Logs");
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PowerRefresher", "Logs");
+
+        //Same folder as written in .bat files, so the script works for whichever user runs it
+        private const string ScriptLogFolderBatch = @"%LOCALAPPDATA%\PowerRefresher\Logs";
 
         /// <summary>
         /// Builds a PowerRefresherCli command equivalent to the current form settings, plus logging and hang
@@ -369,8 +373,11 @@ namespace PowerRefresher
                 w.WriteLine($"REM             \"Stop the task if it runs longer than\" {SCRIPT_MAX_RUNTIME_MINUTES / 60 + 1} hours");
                 w.WriteLine("REM             \"If the task is already running\" = Do not start a new instance");
                 w.WriteLine();
-                //One option per line; "%" must be doubled inside batch files
-                w.WriteLine(string.Join(" ^" + Environment.NewLine + "  ", parts.Select(p => p.Replace("%", "%%"))));
+                //One option per line. "%" in values must be doubled inside batch files, except the log folder,
+                //which deliberately uses %LOCALAPPDATA% so it expands for whoever runs the script.
+                string logPart = $"--log {Quote(ScriptLogFolder)}";
+                IEnumerable<string> batchParts = parts.Select(p => p == logPart ? $"--log \"{ScriptLogFolderBatch}\"" : p.Replace("%", "%%"));
+                w.WriteLine(string.Join(" ^" + Environment.NewLine + "  ", batchParts));
                 w.WriteLine("exit /b %ERRORLEVEL%");
             }
 
