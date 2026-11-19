@@ -260,6 +260,7 @@ namespace PowerRefresher.Engine
             //The field list only appears once the model has loaded; wait for it, but keep checking everything else if it never shows
             Info($"Waiting up to {Options.OpenTimeoutSeconds}s for the field list (it appears once the model has loaded)...");
             AutomationElement node = Safe(() => FirstTableNode(Options.OpenTimeoutSeconds));
+            ThrowIfWindowGone("the field list");
             if (node == null) Warn("Field list not found. Check that the Data (Fields) pane is open and expanded in Report view.");
 
             results.Add(new DiagnosticResult("Power BI window", DiagnosticStatus.Ok, $"pid {ProcessId}, title '{Safe(() => pbi.Current.Name)}'"));
@@ -417,6 +418,13 @@ namespace PowerRefresher.Engine
         private void OpenOrBindPbixFile(string fileBaseName)
         {
             OpenedFile = false;
+            foreach (Process p in Process.GetProcessesByName(PBI_PROCESS_NAME))
+            {
+                string started = "?", title = "?";
+                try { started = p.StartTime.ToString("HH:mm:ss"); title = p.MainWindowTitle; } catch (Exception) { }
+                Debug($"Running Power BI process: pid {p.Id}, started {started}, window '{title}'");
+            }
+
             List<Process> existing = Process.GetProcessesByName(PBI_PROCESS_NAME)
                 .Where(p => IsPbiWindowTitle(p.MainWindowTitle, fileBaseName))
                 .OrderByDescending(p => p.StartTime)
@@ -454,6 +462,21 @@ namespace PowerRefresher.Engine
             List<string> others = NativeMethods.OtherVisibleWindows(process.Id, hwnd);
             if (others.Count > 0) return "is showing another window: " + string.Join(", ", others);
 
+            //UI Automation calls have no time limit of their own, and a busy or half-broken window can stall them indefinitely
+            string problem = null;
+            Thread inspect = new Thread(() => problem = InspectExistingWindow(hwnd)) { IsBackground = true, Name = "PowerRefresher inspect" };
+            inspect.SetApartmentState(ApartmentState.MTA);
+            inspect.Start();
+            if (!inspect.Join(TimeSpan.FromSeconds(EXISTING_WINDOW_CHECK_SECONDS)))
+                return $"did not answer UI Automation within {EXISTING_WINDOW_CHECK_SECONDS}s";
+            return problem;
+        }
+
+        private const int EXISTING_WINDOW_CHECK_SECONDS = 45;
+
+        /// <summary>The UI Automation part of <see cref="DescribeProblem"/>; runs on a worker thread so it can be abandoned.</summary>
+        private string InspectExistingWindow(IntPtr hwnd)
+        {
             try
             {
                 AutomationElement window = AutomationElement.FromHandle(hwnd);
@@ -470,7 +493,7 @@ namespace PowerRefresher.Engine
                 if (Find(loc.WorkspaceList, window, out _) != null) return "has the publish dialog open";
                 if (FindById(window, ui.ScriptVisualsDialogId) != null) return "is showing a prompt (script visuals or a message)";
             }
-            catch (Exception e) when (e is ElementNotAvailableException || e is InvalidOperationException)
+            catch (Exception e) //On a worker thread, an unhandled exception would end the process
             {
                 return $"could not be inspected ({e.Message})";
             }
