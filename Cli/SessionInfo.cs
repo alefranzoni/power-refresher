@@ -25,10 +25,10 @@ namespace PowerRefresher.Cli
             {
                 try
                 {
-                    //WTSINFOEXW: Level, then WTSINFOEX_LEVEL1_W { SessionId, SessionState, SessionFlags, ... }
-                    if (size >= 16 && Marshal.ReadInt32(info) == 1)
+                    //WTSINFOEXW: Level, then (8-byte aligned, it holds LARGE_INTEGERs) WTSINFOEX_LEVEL1_W { SessionId, SessionState, SessionFlags, ... }
+                    if (size >= 20 && Marshal.ReadInt32(info) == 1)
                     {
-                        int flags = Marshal.ReadInt32(info, 12);
+                        int flags = Marshal.ReadInt32(info, 16);
                         if (flags == WTS_SESSIONSTATE_LOCK) return true;
                         if (flags == WTS_SESSIONSTATE_UNLOCK) return false;
                     }
