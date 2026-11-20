@@ -396,7 +396,12 @@ Examples:
         {
             if (!refresher.OpenedFile || !refresher.Options.CloseFile) return;
             try { refresher.Close(); }
-            catch (AutomationException e) { logger.Write(LogLevel.Warn, e.Message); }
+            catch (AutomationException e)
+            {
+                //Probably a prompt (e.g. a first-run "what's new" popup); don't leave an instance behind that we started
+                logger.Write(LogLevel.Warn, e.Message);
+                refresher.KillPowerBI("did not close");
+            }
         }
 
         private static void PrintDiagnosis(IReadOnlyList<DiagnosticResult> results)

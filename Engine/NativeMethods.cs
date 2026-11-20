@@ -40,6 +40,68 @@ namespace PowerRefresher.Engine
             return windows;
         }
 
+        /// <summary>Every process started by <paramref name="processId"/>, its children's children and so on (Power BI's
+        /// data engine, query containers and browser processes), deepest first.</summary>
+        public static List<int> DescendantProcessIds(int processId)
+        {
+            Dictionary<int, List<int>> children = new Dictionary<int, List<int>>();
+            IntPtr snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+            if (snapshot == INVALID_HANDLE_VALUE) return new List<int>();
+            try
+            {
+                PROCESSENTRY32 entry = new PROCESSENTRY32 { dwSize = (uint)Marshal.SizeOf(typeof(PROCESSENTRY32)) };
+                for (bool ok = Process32First(snapshot, ref entry); ok; ok = Process32Next(snapshot, ref entry))
+                {
+                    int parent = (int)entry.th32ParentProcessID, pid = (int)entry.th32ProcessID;
+                    if (pid == parent) continue;
+                    if (!children.TryGetValue(parent, out List<int> list)) children[parent] = list = new List<int>();
+                    list.Add(pid);
+                }
+            }
+            finally { CloseHandle(snapshot); }
+
+            List<int> result = new List<int>();
+            HashSet<int> seen = new HashSet<int> { processId };
+            void Walk(int pid)
+            {
+                if (!children.TryGetValue(pid, out List<int> list)) return;
+                foreach (int child in list)
+                {
+                    if (!seen.Add(child)) continue; //Process ids get reused; guard against cycles
+                    Walk(child);
+                    result.Add(child);
+                }
+            }
+            Walk(processId);
+            return result;
+        }
+
+        private const uint TH32CS_SNAPPROCESS = 0x00000002;
+        private static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct PROCESSENTRY32
+        {
+            public uint dwSize, cntUsage, th32ProcessID;
+            public IntPtr th32DefaultHeapID;
+            public uint th32ModuleID, cntThreads, th32ParentProcessID;
+            public int pcPriClassBase;
+            public uint dwFlags;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] public string szExeFile;
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr CreateToolhelp32Snapshot(uint flags, uint processId);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, EntryPoint = "Process32FirstW")]
+        private static extern bool Process32First(IntPtr snapshot, ref PROCESSENTRY32 entry);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, EntryPoint = "Process32NextW")]
+        private static extern bool Process32Next(IntPtr snapshot, ref PROCESSENTRY32 entry);
+
+        [DllImport("kernel32.dll")]
+        private static extern bool CloseHandle(IntPtr handle);
+
         private const uint WM_NULL = 0x0000;
         private const uint SMTO_BLOCK = 0x0001;
         private const uint SMTO_ABORTIFHUNG = 0x0002;

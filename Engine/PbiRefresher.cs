@@ -231,8 +231,28 @@ namespace PowerRefresher.Engine
                 }
                 if (IsWindow(hwnd)) throw new AutomationException("Power BI window did not close within 30s (it may be showing a prompt).");
                 pbi = null;
+                WaitForExitOrKill();
             });
         }
+
+        /// <summary>
+        /// The window going away doesn't mean Power BI has quit: its process (and the data engine, query containers and
+        /// browser processes it started) can keep running in the background. Give it a minute, then clean up.
+        /// </summary>
+        private void WaitForExitOrKill()
+        {
+            Process process;
+            try { process = Process.GetProcessById(processId); }
+            catch (ArgumentException) { return; } //Already gone
+            if (process.WaitForExit(PROCESS_EXIT_SECONDS * 1000))
+            {
+                Debug("Power BI process exited");
+                return;
+            }
+            KillProcess(process, $"its window closed but the process was still running {PROCESS_EXIT_SECONDS}s later");
+        }
+
+        private const int PROCESS_EXIT_SECONDS = 60;
 
         /// <summary>Force-kills the Power BI process being driven (used after a hang or before a retry). Unsaved work in it is lost.</summary>
         public void KillPowerBI(string reason)
@@ -500,8 +520,13 @@ namespace PowerRefresher.Engine
             return null;
         }
 
+        /// <summary>Kills Power BI and every process it started, so nothing is left running in the background.</summary>
         private void KillProcess(Process process, string reason)
         {
+            List<int> children;
+            try { children = NativeMethods.DescendantProcessIds(process.Id); }
+            catch (Exception e) when (e is System.ComponentModel.Win32Exception || e is ExternalException) { children = new List<int>(); }
+
             try
             {
                 Warn($"Killing Power BI (pid {process.Id}): {reason}");
@@ -510,6 +535,20 @@ namespace PowerRefresher.Engine
             }
             catch (InvalidOperationException) { } //Already gone
             catch (System.ComponentModel.Win32Exception e) { Warn($"Could not kill Power BI (pid {process.Id}): {e.Message}"); }
+
+            foreach (int pid in children)
+            {
+                try
+                {
+                    using (Process child = Process.GetProcessById(pid))
+                    {
+                        Debug($"Ending process Power BI started: {child.ProcessName} (pid {pid})");
+                        child.Kill();
+                        child.WaitForExit(5000);
+                    }
+                }
+                catch (Exception e) when (e is ArgumentException || e is InvalidOperationException || e is System.ComponentModel.Win32Exception) { } //Already gone or not ours
+            }
         }
 
         private void FindPowerBIWindow(string fileBaseName)
