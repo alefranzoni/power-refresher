@@ -20,6 +20,7 @@ namespace PowerRefresher.Engine
         //Field list
         public string FieldTreeClass = "cdk-tree";
         public string MoreOptionsName = "More options";
+        public string TableNodePrefix = "Table ";  //Older builds name the field-list node "Table Sales"
         public string RefreshMenuItemId = "FieldListMenuItem_RefreshEntity"; //Legacy flat field menu item
         public string RefreshSubmenuDataId = "RefreshData";     //Current field menu: Refresh > Data
         public string RefreshSubmenuDataName = "Data";
@@ -56,6 +57,7 @@ namespace PowerRefresher.Engine
                         SaveButtonName = "Guardar",                 //unverified
                         PublishButtonName = "Publicar",             //unverified
                         MoreOptionsName = "Más opciones",           //unverified
+                        TableNodePrefix = "Tabla ",                 //unverified
                         RefreshSubmenuDataName = "Datos",           //unverified
                         RefreshInProgressButton = "Cancelar",
                         SaveWaitMessage = "En proceso",

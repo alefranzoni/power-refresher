@@ -713,7 +713,9 @@ namespace PowerRefresher.Engine
         private string GetTableName(AutomationElement node)
         {
             AutomationElement nameSource = Find(loc.TableName, node, out int strategy);
-            return strategy == 0 ? nameSource.Current.Name : node.Current.Name;
+            if (strategy == 0) return nameSource.Current.Name;
+            string name = node.Current.Name;
+            return name.StartsWith(ui.TableNodePrefix, StringComparison.Ordinal) ? name.Substring(ui.TableNodePrefix.Length) : name;
         }
 
         private void OpenTableMenuAndRefresh(AutomationElement node, string table)

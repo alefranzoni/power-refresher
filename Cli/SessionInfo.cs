@@ -20,6 +20,22 @@ namespace PowerRefresher.Cli
         /// <summary>True while the workstation is locked (the input desktop is the secure Winlogon desktop).</summary>
         public static bool IsLocked()
         {
+            //Windows 10/11 show the lock screen on the normal desktop, so ask for the session's lock state first
+            if (WTSQuerySessionInformation(IntPtr.Zero, WTS_CURRENT_SESSION, WTSSessionInfoEx, out IntPtr info, out int size))
+            {
+                try
+                {
+                    //WTSINFOEXW: Level, then WTSINFOEX_LEVEL1_W { SessionId, SessionState, SessionFlags, ... }
+                    if (size >= 16 && Marshal.ReadInt32(info) == 1)
+                    {
+                        int flags = Marshal.ReadInt32(info, 12);
+                        if (flags == WTS_SESSIONSTATE_LOCK) return true;
+                        if (flags == WTS_SESSIONSTATE_UNLOCK) return false;
+                    }
+                }
+                finally { WTSFreeMemory(info); }
+            }
+
             IntPtr desktop = OpenInputDesktop(0, false, DESKTOP_SWITCHDESKTOP);
             if (desktop == IntPtr.Zero) return true;
             try { return !SwitchDesktop(desktop); }
@@ -66,6 +82,9 @@ namespace PowerRefresher.Cli
         private const int UOI_NAME = 2;
         private const int WTS_CURRENT_SESSION = -1;
         private const int WTSConnectState = 8;
+        private const int WTSSessionInfoEx = 25;
+        private const int WTS_SESSIONSTATE_LOCK = 0;
+        private const int WTS_SESSIONSTATE_UNLOCK = 1;
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern IntPtr OpenInputDesktop(uint flags, bool inherit, uint desiredAccess);
